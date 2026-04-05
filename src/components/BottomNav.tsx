@@ -2,7 +2,7 @@ import { Home, Plus, Clock, BookOpen, User } from 'lucide-react'
 import { useLocation, Link } from 'react-router-dom'
 
 const navItems = [
-  { name: 'Home', icon: Home, href: '/' },
+  { name: 'Home', icon: Home, href: '/home' },
   { name: 'Create', icon: Plus, href: '/create' },
   { name: 'History', icon: Clock, href: '/history' },
   { name: 'Journal', icon: BookOpen, href: '/journal' },
