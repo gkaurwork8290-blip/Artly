@@ -1,164 +1,29 @@
-import { NextRequest, NextResponse } from 'next/server'
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-export const config = {
-  runtime: 'edge',
-}
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-export default async function handler(req: NextRequest) {
-  // Set CORS headers
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  }
+  const { image, text } = req.body;
+  const apiKey = process.env.VITE_CLAUDE_API_KEY;
 
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    return new NextResponse(null, { status: 200, headers })
-  }
+  if (!apiKey) return res.status(500).json({ error: 'API key not configured' });
 
-  if (req.method !== 'POST') {
-    return new NextResponse(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers,
-    })
-  }
+  const content = image
+    ? [{ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: image } },
+       { type: 'text', text: 'List the art materials you see. Return ONLY a JSON array: [{"name":"...","category":"...","confidence":"high/medium/low"}]' }]
+    : [{ type: 'text', text: `Art materials in this description: "${text}". Return ONLY a JSON array: [{"name":"...","category":"...","confidence":"high/medium/low"}]` }];
 
-  try {
-    const body = await req.json()
-    const { image, text } = body
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1024, messages: [{ role: 'user', content }] })
+  });
 
-    // Validate input
-    if (!image && !text) {
-      return new NextResponse(JSON.stringify({ error: 'No image or text provided' }), {
-        status: 400,
-        headers,
-      })
-    }
-
-    const apiKey = process.env.VITE_CLAUDE_API_KEY
-    if (!apiKey) {
-      return new NextResponse(JSON.stringify({ error: 'API key not configured' }), {
-        status: 500,
-        headers,
-      })
-    }
-
-    // Prepare Claude API request
-    let messages: any[] = []
-
-    if (image) {
-      // Image input
-      messages = [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: 'image/jpeg',
-                data: image,
-              },
-            },
-            {
-              type: 'text',
-              text: 'Analyse this image and identify the art materials visible.',
-            },
-          ],
-        },
-      ]
-    } else if (text) {
-      // Text input
-      messages = [
-        {
-          role: 'user',
-          content: `Analyse this description of art materials: "${text}"`,
-        },
-      ]
-    }
-
-    // Call Claude API
-    const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-3-opus-20240229',
-        max_tokens: 1024,
-        system: 'You are an art materials expert. Analyse the input and return ONLY a valid JSON array. Each item: { name: string, category: string, confidence: string }. Categories: paint, brush, paper, canvas, clay, ink, pencil, marker, tool, other. No other text, just the JSON array.',
-        messages,
-      }),
-    })
-
-    if (!claudeResponse.ok) {
-      const errorText = await claudeResponse.text()
-      console.error('Claude API error:', errorText)
-      return new NextResponse(
-        JSON.stringify({ error: `Claude API error: ${claudeResponse.status}` }),
-        {
-          status: claudeResponse.status,
-          headers,
-        }
-      )
-    }
-
-    const claudeData = await claudeResponse.json()
-    const content = claudeData.content[0]?.text
-
-    if (!content) {
-      return new NextResponse(
-        JSON.stringify({ error: 'No response content received' }),
-        {
-          status: 500,
-          headers,
-        }
-      )
-    }
-
-    // Parse and validate JSON response
-    let materials: any[]
-    try {
-      materials = JSON.parse(content)
-    } catch (parseError) {
-      console.error('JSON parse error:', parseError)
-      return new NextResponse(
-        JSON.stringify({ error: 'Failed to parse API response' }),
-        {
-          status: 500,
-          headers,
-        }
-      )
-    }
-
-    // Validate materials array
-    if (!Array.isArray(materials)) {
-      return new NextResponse(
-        JSON.stringify({ error: 'Invalid response format' }),
-        {
-          status: 500,
-          headers,
-        }
-      )
-    }
-
-    // Return success response
-    return new NextResponse(JSON.stringify({ materials }), {
-      status: 200,
-      headers,
-    })
-
-  } catch (error) {
-    console.error('Server error:', error)
-    return new NextResponse(
-      JSON.stringify({ error: 'Internal server error' }),
-      {
-        status: 500,
-        headers,
-      }
-    )
-  }
+  const data = await response.json();
+  const text_response = data.content?.[0]?.text || '[]';
+  const materials = JSON.parse(text_response.replace(/```json|```/g, '').trim());
+  return res.status(200).json({ materials });
 }
