@@ -1,6 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  console.log('API Key prefix:', process.env.CLAUDE_API_KEY?.substring(0, 20));
+  console.log('VITE Key prefix:', process.env.VITE_CLAUDE_API_KEY?.substring(0, 20));
+  
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
