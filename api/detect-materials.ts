@@ -24,6 +24,21 @@ export default async function handler(req, res) {
 
   const data = await response.json();
   const text_response = data.content?.[0]?.text || '[]';
-  const materials = JSON.parse(text_response.replace(/```json|```/g, '').trim());
+  
+  let materials;
+  try {
+    // Remove markdown code blocks and parse JSON
+    const cleanedResponse = text_response.replace(/```json|```/g, '').trim();
+    console.log('Cleaned response:', cleanedResponse);
+    materials = JSON.parse(cleanedResponse);
+  } catch (parseError) {
+    console.error('JSON parsing failed:', parseError);
+    console.error('Raw response:', text_response);
+    return res.status(500).json({ 
+      error: 'Failed to parse materials response',
+      rawResponse: text_response
+    });
+  }
+  
   return res.status(200).json({ materials });
 }

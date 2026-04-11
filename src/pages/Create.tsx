@@ -156,6 +156,11 @@ export default function Create() {
         throw new Error('Invalid response format')
       }
 
+      // Check if materials array is empty
+      if (materials.length === 0) {
+        throw new Error('No materials detected')
+      }
+
       setDetectedMaterials(materials)
       setCurrentScreen('confirmation')
 
@@ -514,21 +519,39 @@ export default function Create() {
         {currentScreen === 'error' && (
           <div className="bg-surface border border-surface2 rounded-2xl p-6 text-center">
             <div className="text-4xl mb-4">â ï¸</div>
-            <h3 className="text-xl font-semibold text-text-primary mb-2">Something went wrong</h3>
-            <p className="text-text-secondary mb-6">{error}</p>
+            <h3 className="text-xl font-semibold text-text-primary mb-2">
+              {error === 'No materials detected' ? 'No materials found' : 'Something went wrong'}
+            </h3>
+            <p className="text-text-secondary mb-6">
+              {error === 'No materials detected' 
+                ? "We couldn't detect any materials. Try a clearer photo or describe your materials instead."
+                : error
+              }
+            </p>
             <div className="flex gap-4 justify-center">
-              <button
-                onClick={backToSelection}
-                className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
-              >
-                Back to selection
-              </button>
-              <button
-                onClick={tryAgain}
-                className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
-              >
-                Try again
-              </button>
+              {error === 'No materials detected' ? (
+                <button
+                  onClick={tryAgain}
+                  className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
+                >
+                  Try again
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={backToSelection}
+                    className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
+                  >
+                    Back to selection
+                  </button>
+                  <button
+                    onClick={tryAgain}
+                    className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
+                  >
+                    Try again
+                  </button>
+                </>
+              )}
             </div>
           </div>
         )}
