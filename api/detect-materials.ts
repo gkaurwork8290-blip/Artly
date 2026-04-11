@@ -1,4 +1,6 @@
-export default async function handler(req, res) {
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -11,34 +13,40 @@ export default async function handler(req, res) {
 
   if (!apiKey) return res.status(500).json({ error: 'API key not configured' });
 
-  const content = image
-    ? [{ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: image } },
-       { type: 'text', text: 'List the art materials you see. Return ONLY a JSON array: [{"name":"...","category":"...","confidence":"high/medium/low"}]' }]
-    : [{ type: 'text', text: `Art materials in this description: "${text}". Return ONLY a JSON array: [{"name":"...","category":"...","confidence":"high/medium/low"}]` }];
+  const userContent = image
+    ? [
+        { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: image } },
+        { type: 'text', text: 'What art materials do you see? Reply with ONLY a JSON array like: [{"name":"scissors","category":"tool","confidence":"high"}]' }
+      ]
+    : [{ type: 'text', text: `Extract art materials from: "${text}". Reply with ONLY a JSON array like: [{"name":"acrylic paint","category":"paint","confidence":"high"}]` }];
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1024, messages: [{ role: 'user', content }] })
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      system: 'You are an art materials identifier. Always respond with ONLY a valid JSON array, nothing else. No markdown, no explanation.',
+      messages: [{ role: 'user', content: userContent }]
+    })
   });
 
   const data = await response.json();
-  const text_response = data.content?.[0]?.text || '[]';
+  console.log('Raw Claude response:', JSON.stringify(data));
   
-  let materials;
+  const rawText = data.content?.[0]?.text || '[]';
+  console.log('Raw text:', rawText);
+  
   try {
-    // Remove markdown code blocks and parse JSON
-    const cleanedResponse = text_response.replace(/```json|```/g, '').trim();
-    console.log('Cleaned response:', cleanedResponse);
-    materials = JSON.parse(cleanedResponse);
-  } catch (parseError) {
-    console.error('JSON parsing failed:', parseError);
-    console.error('Raw response:', text_response);
-    return res.status(500).json({ 
-      error: 'Failed to parse materials response',
-      rawResponse: text_response
-    });
+    const materials = JSON.parse(rawText);
+    console.log('Parsed materials:', materials);
+    return res.status(200).json({ materials });
+  } catch (e) {
+    console.log('Parse error, raw was:', rawText);
+    return res.status(200).json({ materials: [], debug: rawText });
   }
-  
-  return res.status(200).json({ materials });
 }
