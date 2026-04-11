@@ -31,7 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       'anthropic-version': '2023-06-01'
     },
     body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
+      model: 'claude-haiku-20240307',
       max_tokens: 1024,
       system: 'You are an art materials identifier. Always respond with ONLY a valid JSON array, nothing else. No markdown, no explanation.',
       messages: [{ role: 'user', content: userContent }]
