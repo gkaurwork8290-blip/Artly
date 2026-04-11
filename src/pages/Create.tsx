@@ -1,5 +1,5 @@
 import { useState, useRef, type ChangeEvent } from 'react'
-import { Image, PenLine, X, Plus } from 'lucide-react'
+import { Image, PenLine, X, Plus, Camera } from 'lucide-react'
 
 type InputMethod = 'upload' | 'camera' | 'describe' | 'quickscan' | null
 type InputData = {
@@ -124,80 +124,32 @@ export default function Create() {
     setError(null)
 
     try {
-      const apiKey = import.meta.env.VITE_CLAUDE_API_KEY
-      if (!apiKey) {
-        throw new Error('API key not configured')
-      }
-
-      let messages: any[] = []
+      let requestBody: any = {}
 
       if (inputData.image) {
         // Convert image to base64 (remove data:image/jpeg;base64, prefix)
-        const base64Image = inputData.image.split(',')[1]
-        
-        messages = [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'image',
-                source: {
-                  type: 'base64',
-                  media_type: 'image/jpeg',
-                  data: base64Image
-                }
-              },
-              {
-                type: 'text',
-                text: 'Analyse this image and identify the art materials visible.'
-              }
-            ]
-          }
-        ]
+        requestBody.image = inputData.image.split(',')[1]
       } else if (inputData.description) {
-        messages = [
-          {
-            role: 'user',
-            content: `Analyse this description of art materials: "${inputData.description}"`
-          }
-        ]
+        requestBody.text = inputData.description
       } else {
         throw new Error('No input data available')
       }
 
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch('/api/detect-materials', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01'
         },
-        body: JSON.stringify({
-          model: 'claude-3-opus-20240229',
-          max_tokens: 1024,
-          system: 'You are an art materials expert. Analyse the input and return ONLY a valid JSON array. Each item: { name: string, category: string, confidence: string }. Categories: paint, brush, paper, canvas, clay, ink, pencil, marker, tool, other. No other text, just the JSON array.',
-          messages
-        })
+        body: JSON.stringify(requestBody),
       })
 
       if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`)
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `API request failed: ${response.status}`)
       }
 
       const data = await response.json()
-      const content = data.content[0]?.text
-
-      if (!content) {
-        throw new Error('No response content received')
-      }
-
-      // Parse JSON response
-      let materials: Material[]
-      try {
-        materials = JSON.parse(content)
-      } catch (parseError) {
-        throw new Error('Failed to parse API response')
-      }
+      const materials = data.materials
 
       // Validate materials array
       if (!Array.isArray(materials)) {
@@ -297,7 +249,7 @@ export default function Create() {
                   className="bg-surface border border-surface2 rounded-2xl p-8 cursor-pointer hover:bg-surface2 transition-all duration-200 group"
                 >
                   <div className="text-center">
-                    <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">ð ÷</div>
+                    <Camera size={40} className="mx-auto mb-4 text-text-primary group-hover:scale-110 transition-transform" />
                     <h3 className="text-xl font-semibold text-text-primary mb-2">Use Camera</h3>
                     <p className="text-text-secondary">Take a photo with your device</p>
                   </div>
@@ -419,7 +371,7 @@ export default function Create() {
                 <textarea
                   value={inputData.description || ''}
                   onChange={(e) => setInputData({ ...inputData, description: e.target.value, method: 'describe' })}
-                  placeholder="Describe the art materials you have..."
+                  placeholder="e.g. I have crimson acrylic paint, a flat brush, air dry clay and some canvas board..."
                   className="w-full h-32 p-4 bg-background border border-surface2 rounded-lg text-text-primary placeholder-text-secondary resize-none focus:outline-none focus:border-primary mb-6"
                 />
                 <div className="flex gap-4 justify-center">
