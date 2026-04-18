@@ -39,6 +39,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
     });
 
+    const errorBody = await response.text();
+    console.log('Anthropic response status:', response.status);
+    console.log('Anthropic response body:', errorBody);
+
     if (!response.ok) {
       return res.status(500).json({ error: `API request failed: ${response.status}` });
     }
