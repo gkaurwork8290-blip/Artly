@@ -14,7 +14,7 @@ type Material = {
   confidence: string
 }
 
-type Screen = 'selection' | 'detecting' | 'confirmation' | 'error' | 'ideas' | 'palette'
+type Screen = 'selection' | 'detecting' | 'confirmation' | 'error' | 'ideas' | 'palette' | 'kit'
 
 type Idea = {
   title: string
@@ -37,6 +37,19 @@ type Palette = {
   harmoniousCombinations: string[]
 }
 
+type KitItem = {
+  item: string
+  reason: string
+  estimatedPrice: string
+  localAlternative?: string
+}
+
+type ShoppingKit = {
+  essentials: KitItem[]
+  niceToHave: KitItem[]
+  totalEstimatedCost: string
+}
+
 export default function Create() {
   const [selectedMethod, setSelectedMethod] = useState<InputMethod>(null)
   const [inputData, setInputData] = useState<InputData>({ method: null })
@@ -50,6 +63,8 @@ export default function Create() {
   const [showThemeInput, setShowThemeInput] = useState(false)
   const [expandedIdea, setExpandedIdea] = useState<number | null>(null)
   const [palette, setPalette] = useState<Palette | null>(null)
+  const [kit, setKit] = useState<ShoppingKit | null>(null)
+  const [selectedCountry, setSelectedCountry] = useState<string>('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -253,6 +268,39 @@ export default function Create() {
     }
   }
 
+  const generateKit = async (country?: string) => {
+    setCurrentScreen('kit')
+    setError(null)
+    setKit(null)
+
+    try {
+      const response = await fetch('/api/generate-kit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          materials: detectedMaterials.map(m => m.name),
+          country: country || undefined
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'API request failed')
+      }
+
+      const data = await response.json()
+      const kit = data || null
+
+      setKit(kit)
+    } catch (error) {
+      console.error('Kit generation failed:', error)
+      setError(error instanceof Error ? error.message : 'Kit generation failed')
+      setCurrentScreen('error')
+    }
+  }
+
   const generatePalette = async () => {
     setCurrentScreen('palette')
     setError(null)
@@ -276,9 +324,9 @@ export default function Create() {
 
       const data = await response.json()
       setPalette(data)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Palette generation failed:', error)
-      setError(error instanceof Error ? error.message : 'Palette generation failed')
+      setError(error.message || 'Palette generation failed')
       setCurrentScreen('error')
     }
   }
@@ -699,10 +747,19 @@ export default function Create() {
 
             <div className="flex gap-4 justify-center mt-8">
               <button
-                onClick={generatePalette}
-                className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
+                onClick={generateKit}
+                className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
               >
-                View Color Palette
+                Build My Kit
+              </button>
+              <button
+                onClick={() => {
+                  const country = selectedCountry || (navigator.language.startsWith('en') ? 'US' : 'UK')
+                  setSelectedCountry(country)
+                }}
+                className="px-4 py-2 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
+              >
+                🌍 {selectedCountry || 'Auto-detect'}
               </button>
               <button
                 onClick={tryAgain}
@@ -821,6 +878,87 @@ export default function Create() {
                 </button>
               </div>
             </div>
+        )}
+
+        {/* Kit Screen */}
+        {currentScreen === 'kit' && (
+          <div className="bg-surface border border-surface2 rounded-2xl p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-semibold text-text-primary">Your Art Kit</h3>
+              <div className="text-sm text-text-secondary">
+                Based on your materials in {selectedCountry || 'your location'}
+              </div>
+            </div>
+
+            {kit === null ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-text-secondary">Building your kit...</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Essentials Section */}
+                <div className="bg-surface2 rounded-xl p-6">
+                  <h4 className="text-lg font-semibold text-white mb-4">Essentials</h4>
+                  <div className="space-y-3">
+                    {kit.essentials.map((item, index) => (
+                      <div key={index} className="bg-surface rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <h5 className="font-medium text-text-primary">{item.item}</h5>
+                          <p className="text-sm text-text-secondary mb-2">{item.reason}</p>
+                          <span className="text-sm font-medium text-primary">{item.estimatedPrice}</span>
+                        </div>
+                        {item.localAlternative && (
+                          <p className="text-xs text-text-secondary">Local alternative: {item.localAlternative}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Nice to Have Section */}
+                <div className="bg-surface2 rounded-xl p-6">
+                  <h4 className="text-lg font-semibold text-white mb-4">Nice to Have</h4>
+                  <div className="space-y-3">
+                    {kit.niceToHave.map((item, index) => (
+                      <div key={index} className="bg-surface rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <h5 className="font-medium text-text-primary">{item.item}</h5>
+                          <p className="text-sm text-text-secondary mb-2">{item.reason}</p>
+                          <span className="text-sm font-medium text-primary">{item.estimatedPrice}</span>
+                        </div>
+                        {item.localAlternative && (
+                          <p className="text-xs text-text-secondary">Local alternative: {item.localAlternative}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Total Cost */}
+                <div className="bg-surface2 rounded-xl p-6">
+                  <h4 className="text-lg font-semibold text-white mb-2">Total Estimated Cost</h4>
+                  <p className="text-2xl font-bold text-primary">{kit.totalEstimatedCost}</p>
+                </div>
+
+                <div className="flex gap-4 justify-center mt-8">
+                  <button
+                    onClick={() => {
+                      alert('Coming in Step 14: Export Kit functionality!')
+                    }}
+                    className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
+                  >
+                    Export Kit
+                  </button>
+                  <button
+                    onClick={tryAgain}
+                    className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
+                  >
+                    Start over
+                  </button>
+                </div>
+              </div>
+            )}
         )}
 
         {/* Error Screen */}
