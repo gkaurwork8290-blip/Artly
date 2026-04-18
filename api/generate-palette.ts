@@ -8,13 +8,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { materials } = req.body;
+  const { materials, ideaTitle, ideaSteps } = req.body;
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
   if (!apiKey) return res.status(500).json({ error: 'API key not configured' });
   if (!materials || !Array.isArray(materials)) return res.status(400).json({ error: 'Materials array required' });
 
-  const userPrompt = `Based on these art materials: ${materials.join(', ')}, generate a color palette. Return ONLY a JSON object: { colors: [{ name, hex, materialSource, mixingNotes }], complementaryPairs: [{ color1, color2, useCase }], harmoniousCombinations: string[] }`;
+  const userPrompt = ideaTitle && ideaSteps 
+    ? `Based on these materials: ${materials.join(', ')} and this art project: ${ideaTitle} with steps ${ideaSteps.join(', ')}, generate the most relevant color palette. Return ONLY a JSON object: { colors: [{ name, hex, materialSource, mixingNotes }], complementaryPairs: [{ color1, color2, useCase }], harmoniousCombinations: string[] }`
+    : `Based on these art materials: ${materials.join(', ')}, generate a color palette. Return ONLY a JSON object: { colors: [{ name, hex, materialSource, mixingNotes }], complementaryPairs: [{ color1, color2, useCase }], harmoniousCombinations: string[] }`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {

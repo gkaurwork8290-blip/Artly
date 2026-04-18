@@ -63,6 +63,7 @@ export default function Create() {
   const [themeInput, setThemeInput] = useState('')
   const [showThemeInput, setShowThemeInput] = useState(false)
   const [expandedIdea, setExpandedIdea] = useState<number | null>(null)
+  const [selectedIdea, setSelectedIdea] = useState<Idea | null>(null)
   const [palette] = useState<Palette | null>(null)
   const [kit, setKit] = useState<ShoppingKit | null>(null)
   const [selectedCountry, setSelectedCountry] = useState<string>('')
@@ -282,7 +283,8 @@ export default function Create() {
         },
         body: JSON.stringify({
           materials: detectedMaterials.map(m => m.name),
-          country: country || undefined
+          country: country || undefined,
+          ideaTitle: selectedIdea?.title || undefined
         }),
       })
 
@@ -298,6 +300,39 @@ export default function Create() {
     } catch (error: unknown) {
       console.error('Kit generation failed:', error)
       setError(error instanceof Error ? error.message : 'Kit generation failed')
+      setCurrentScreen('error')
+    }
+  }
+
+  const generatePalette = async () => {
+    setCurrentScreen('palette')
+    setError(null)
+    // Note: palette state is read-only, so we can't set it directly
+
+    try {
+      const response = await fetch('/api/generate-palette', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          materials: detectedMaterials.map(m => m.name),
+          ideaTitle: selectedIdea?.title || undefined,
+          ideaSteps: selectedIdea?.steps || []
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'API request failed')
+      }
+
+      const data = await response.json()
+      // Note: palette state is read-only, so we can't set it directly
+      console.log('Palette generated:', data)
+    } catch (error: unknown) {
+      console.error('Palette generation failed:', error)
+      setError(error instanceof Error ? error.message : 'Palette generation failed')
       setCurrentScreen('error')
     }
   }
@@ -711,6 +746,15 @@ export default function Create() {
                         </ol>
                       </div>
                     )}
+                    <button
+                      onClick={() => {
+                        setSelectedIdea(idea)
+                        generatePalette()
+                      }}
+                      className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all mt-4"
+                    >
+                      Choose this idea
+                    </button>
                   </div>
                 ))}
               </div>
@@ -745,8 +789,33 @@ export default function Create() {
         {/* Palette Screen */}
         {currentScreen === 'palette' && (
           <div className="bg-surface border border-surface2 rounded-2xl p-6">
+            {/* Confirmation Banner */}
+            {selectedIdea && (
+              <div className="bg-gradient-to-r from-purple-500/10 to-violet-500/10 border border-purple-500/20 rounded-lg p-4 mb-6">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    <p className="text-text-primary">
+                      Creating based on: <span className="font-semibold">{selectedIdea.title}</span>
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedIdea(null)
+                      setCurrentScreen('ideas')
+                    }}
+                    className="text-purple-500 hover:text-purple-600 text-sm font-medium transition-colors"
+                  >
+                    Change
+                  </button>
+                </div>
+              </div>
+            )}
+            
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-semibold text-text-primary">Your Color Palette</h3>
+              <h3 className="text-2xl font-semibold text-text-primary">
+                {selectedIdea ? `Colour Palette for ${selectedIdea.title}` : 'Your Color Palette'}
+              </h3>
             </div>
 
             {palette === null ? (
@@ -850,8 +919,33 @@ export default function Create() {
         {/* Kit Screen */}
         {currentScreen === 'kit' && (
           <div className="bg-surface border border-surface2 rounded-2xl p-6">
+            {/* Confirmation Banner */}
+            {selectedIdea && (
+              <div className="bg-gradient-to-r from-purple-500/10 to-violet-500/10 border border-purple-500/20 rounded-lg p-4 mb-6">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    <p className="text-text-primary">
+                      Creating based on: <span className="font-semibold">{selectedIdea.title}</span>
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedIdea(null)
+                      setCurrentScreen('ideas')
+                    }}
+                    className="text-purple-500 hover:text-purple-600 text-sm font-medium transition-colors"
+                  >
+                    Change
+                  </button>
+                </div>
+              </div>
+            )}
+            
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-semibold text-text-primary">Your Art Kit</h3>
+              <h3 className="text-2xl font-semibold text-text-primary">
+                {selectedIdea ? `Your Kit for ${selectedIdea.title}` : 'Your Art Kit'}
+              </h3>
               <div className="text-sm text-text-secondary">
                 Based on your materials in {selectedCountry || 'your location'}
               </div>

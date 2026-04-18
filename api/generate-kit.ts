@@ -8,13 +8,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { materials, country } = req.body;
+  const { materials, country, ideaTitle } = req.body;
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
   if (!apiKey) return res.status(500).json({ error: 'API key not configured' });
   if (!materials || !Array.isArray(materials)) return res.status(400).json({ error: 'Materials array required' });
 
-  const userPrompt = `The artist is in ${country || 'their location'} and has these materials: ${materials.join(', ')}. Suggest a shopping kit to complete their setup. Return ONLY a JSON object: { essentials: [{ item, reason, estimatedPrice, localAlternative }], niceToHave: [{ item, reason, estimatedPrice, localAlternative }], totalEstimatedCost: string }`;
+  const userPrompt = ideaTitle 
+    ? `The artist in ${country || 'their location'} wants to make: ${ideaTitle}. They have: ${materials.join(', ')}. Suggest a shopping kit specifically for this project. Return ONLY a JSON object: { essentials: [{ item, reason, estimatedPrice, localAlternative }], niceToHave: [{ item, reason, estimatedPrice, localAlternative }], totalEstimatedCost: string }`
+    : `The artist is in ${country || 'their location'} and has these materials: ${materials.join(', ')}. Suggest a shopping kit to complete their setup. Return ONLY a JSON object: { essentials: [{ item, reason, estimatedPrice, localAlternative }], niceToHave: [{ item, reason, estimatedPrice, localAlternative }], totalEstimatedCost: string }`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
