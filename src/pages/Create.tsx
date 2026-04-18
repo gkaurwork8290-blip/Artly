@@ -14,7 +14,15 @@ type Material = {
   confidence: string
 }
 
-type Screen = 'selection' | 'detecting' | 'confirmation' | 'error'
+type Screen = 'selection' | 'detecting' | 'confirmation' | 'error' | 'ideas'
+
+type Idea = {
+  title: string
+  description: string
+  difficulty: 'beginner' | 'intermediate' | 'advanced'
+  estimatedTime: string
+  steps: string[]
+}
 
 export default function Create() {
   const [selectedMethod, setSelectedMethod] = useState<InputMethod>(null)
@@ -24,6 +32,10 @@ export default function Create() {
   const [detectedMaterials, setDetectedMaterials] = useState<Material[]>([])
   const [manualMaterial, setManualMaterial] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [ideas, setIdeas] = useState<Idea[]>([])
+  const [themeInput, setThemeInput] = useState('')
+  const [showThemeInput, setShowThemeInput] = useState(false)
+  const [expandedIdea, setExpandedIdea] = useState<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -191,11 +203,44 @@ export default function Create() {
     setDetectedMaterials(detectedMaterials.filter((_, i) => i !== index))
   }
 
+  const generateIdeas = async (theme?: string) => {
+    setCurrentScreen('ideas')
+    setError(null)
+    setIdeas([])
+    setExpandedIdea(null)
+
+    try {
+      const skillLevel = localStorage.getItem('artly_skill_level') || 'beginner'
+      const response = await fetch('/api/generate-ideas', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          materials: detectedMaterials.map(m => m.name),
+          skillLevel,
+          theme: theme || undefined
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'API request failed')
+      }
+
+      const data = await response.json()
+      const ideas = data.ideas || []
+
+      setIdeas(ideas)
+    } catch (error) {
+      console.error('Ideas generation failed:', error)
+      setError(error instanceof Error ? error.message : 'Ideas generation failed')
+      setCurrentScreen('error')
+    }
+  }
+
   const confirmMaterials = () => {
-    // Store materials in state for next step
-    console.log('Confirmed materials:', detectedMaterials)
-    // This would navigate to the next step in the flow
-    alert('Materials confirmed! Ready for next step.')
+    generateIdeas()
   }
 
   const tryAgain = () => {
@@ -510,6 +555,94 @@ export default function Create() {
                 className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
               >
                 Looks good!
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Ideas Screen */}
+        {currentScreen === 'ideas' && (
+          <div className="bg-surface border border-surface2 rounded-2xl p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-semibold text-text-primary">Creative Ideas for You</h3>
+              <div className="flex gap-3">
+                {!showThemeInput ? (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={themeInput}
+                      onChange={(e) => setThemeInput(e.target.value)}
+                      placeholder="e.g. calm, bold, nature..."
+                      className="flex-1 px-4 py-2 bg-background border border-surface2 rounded-lg text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary"
+                    />
+                    <button
+                      onClick={() => generateIdeas(themeInput)}
+                      className="px-4 py-2 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
+                    >
+                      Apply Theme
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowThemeInput(true)}
+                    className="px-4 py-2 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
+                  >
+                    Inspire Me
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {ideas.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-text-secondary">Sparking your creativity...</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {ideas.map((idea, index) => (
+                  <div key={index} className="bg-surface border border-surface2 rounded-xl p-6">
+                    <div className="flex justify-between items-start mb-3">
+                      <h4 className="text-lg font-semibold text-white">{idea.title}</h4>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        idea.difficulty === 'beginner' ? 'bg-green-500 text-white' :
+                        idea.difficulty === 'intermediate' ? 'bg-yellow-500 text-white' :
+                        'bg-red-500 text-white'
+                      }`}>
+                        {idea.difficulty}
+                      </span>
+                    </div>
+                    <p className="text-text-secondary mb-3">{idea.description}</p>
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="text-sm text-text-secondary">{idea.estimatedTime}</span>
+                      <button
+                        onClick={() => setExpandedIdea(expandedIdea === index ? null : index)}
+                        className="text-primary hover:text-primary/80 transition-colors"
+                      >
+                        {expandedIdea === index ? 'Hide steps' : 'See steps'}
+                      </button>
+                    </div>
+                    {expandedIdea === index && (
+                      <div className="bg-surface2 rounded-lg p-4 mt-3">
+                        <h5 className="font-medium text-text-primary mb-2">Steps:</h5>
+                        <ol className="list-decimal list-inside space-y-2">
+                          {idea.steps.map((step, stepIndex) => (
+                            <li key={stepIndex} className="text-text-secondary">{step}</li>
+                          ))}
+                        </ol>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex gap-4 justify-center mt-8">
+              <button
+                onClick={tryAgain}
+                className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
+              >
+                Start over
               </button>
             </div>
           </div>
