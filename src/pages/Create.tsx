@@ -14,7 +14,7 @@ type Material = {
   confidence: string
 }
 
-type Screen = 'selection' | 'detecting' | 'confirmation' | 'error' | 'ideas'
+type Screen = 'selection' | 'detecting' | 'confirmation' | 'error' | 'ideas' | 'palette'
 
 type Idea = {
   title: string
@@ -22,6 +22,19 @@ type Idea = {
   difficulty: 'beginner' | 'intermediate' | 'advanced'
   estimatedTime: string
   steps: string[]
+}
+
+type Color = {
+  name: string
+  hex: string
+  materialSource: string
+  mixingNotes: string
+}
+
+type Palette = {
+  colors: Color[]
+  complementaryPairs: { color1: string; color2: string; useCase: string }[]
+  harmoniousCombinations: string[]
 }
 
 export default function Create() {
@@ -36,6 +49,7 @@ export default function Create() {
   const [themeInput, setThemeInput] = useState('')
   const [showThemeInput, setShowThemeInput] = useState(false)
   const [expandedIdea, setExpandedIdea] = useState<number | null>(null)
+  const [palette, setPalette] = useState<Palette | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -235,6 +249,36 @@ export default function Create() {
     } catch (error) {
       console.error('Ideas generation failed:', error)
       setError(error instanceof Error ? error.message : 'Ideas generation failed')
+      setCurrentScreen('error')
+    }
+  }
+
+  const generatePalette = async () => {
+    setCurrentScreen('palette')
+    setError(null)
+    setPalette(null)
+
+    try {
+      const response = await fetch('/api/generate-palette', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          materials: detectedMaterials.map(m => m.name)
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'API request failed')
+      }
+
+      const data = await response.json()
+      setPalette(data)
+    } catch (error) {
+      console.error('Palette generation failed:', error)
+      setError(error instanceof Error ? error.message : 'Palette generation failed')
       setCurrentScreen('error')
     }
   }
@@ -639,6 +683,12 @@ export default function Create() {
 
             <div className="flex gap-4 justify-center mt-8">
               <button
+                onClick={generatePalette}
+                className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
+              >
+                View Color Palette
+              </button>
+              <button
                 onClick={tryAgain}
                 className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
               >
@@ -646,6 +696,115 @@ export default function Create() {
               </button>
             </div>
           </div>
+        )}
+
+        {/* Palette Screen */}
+        {currentScreen === 'palette' && (
+          <div className="bg-surface border border-surface2 rounded-2xl p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-semibold text-text-primary">Your Color Palette</h3>
+            </div>
+
+            {palette === null ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-text-secondary">Mixing your palette...</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Color Swatches */}
+                <div className="bg-surface2 rounded-xl p-6">
+                  <h4 className="text-lg font-semibold text-text-primary mb-4">Color Swatches</h4>
+                  <div className="grid grid-cols-4 md:grid-cols-6 gap-4">
+                    {palette.colors.map((color, index) => (
+                      <div key={index} className="text-center group cursor-pointer">
+                        <div 
+                          className="w-16 h-16 rounded-full border-2 border-surface3 mb-2 mx-auto group-hover:scale-110 transition-transform"
+                          style={{ backgroundColor: color.hex }}
+                          title={color.name}
+                        />
+                        <p className="text-sm font-medium text-text-primary">{color.name}</p>
+                        <p className="text-xs text-text-secondary">{color.hex}</p>
+                        <p className="text-xs text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity">
+                          From: {color.materialSource}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Mixing Notes */}
+                <div className="bg-surface2 rounded-xl p-6">
+                  <h4 className="text-lg font-semibold text-text-primary mb-4">Mixing Notes</h4>
+                  <div className="space-y-3">
+                    {palette.colors.map((color, index) => (
+                      <div key={index} className="bg-surface rounded-lg p-4">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div 
+                            className="w-8 h-8 rounded-full border-2 border-surface3"
+                            style={{ backgroundColor: color.hex }}
+                          />
+                          <div>
+                            <p className="font-medium text-text-primary">{color.name}</p>
+                            <p className="text-sm text-text-secondary">{color.hex}</p>
+                          </div>
+                        </div>
+                        <p className="text-sm text-text-secondary">{color.mixingNotes}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Complementary Pairs */}
+                <div className="bg-surface2 rounded-xl p-6">
+                  <h4 className="text-lg font-semibold text-text-primary mb-4">Complementary Pairs</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {palette.complementaryPairs.map((pair, index) => (
+                      <div key={index} className="bg-surface rounded-lg p-4">
+                        <div className="flex items-center gap-4 mb-3">
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-8 h-8 rounded-full border-2 border-surface3"
+                              style={{ backgroundColor: pair.color1 }}
+                            />
+                            <span className="text-sm font-medium text-text-primary">{pair.color1}</span>
+                          </div>
+                          <div className="text-text-secondary">+</div>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-8 h-8 rounded-full border-2 border-surface3"
+                              style={{ backgroundColor: pair.color2 }}
+                            />
+                            <span className="text-sm font-medium text-text-primary">{pair.color2}</span>
+                          </div>
+                        </div>
+                        <p className="text-sm text-text-secondary">{pair.useCase}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Harmonious Combinations */}
+                <div className="bg-surface2 rounded-xl p-6">
+                  <h4 className="text-lg font-semibold text-text-primary mb-4">Harmonious Combinations</h4>
+                  <div className="space-y-2">
+                    {palette.harmoniousCombinations.map((combination, index) => (
+                      <div key={index} className="bg-surface rounded-lg p-4">
+                        <p className="text-sm text-text-secondary">{combination}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}   <div className="flex gap-4 justify-center mt-8">
+                <button
+                  onClick={tryAgain}
+                  className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
+                >
+                  Start over
+                </button>
+              </div>
+            </div>
         )}
 
         {/* Error Screen */}
