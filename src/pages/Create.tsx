@@ -54,7 +54,6 @@ export default function Create() {
   const [colourMatches, setColourMatches] = useState<any[]>([])
   const [kit, setKit] = useState<ShoppingKit | null>(null)
   const [selectedCountry] = useState<string>('')
-  const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -299,11 +298,18 @@ export default function Create() {
     
     setCurrentScreen('palette')
     setError(null)
-    // Note: palette state is read-only, so we can't set it directly
+
+    const colourMaterials = filterColourMaterials(detectedMaterials)
+    console.log('🎨 Colour materials:', colourMaterials)
+
+    if (colourMaterials.length === 0) {
+      console.log('❌ No colour materials detected')
+      return
+    }
 
     try {
       const requestBody = {
-        materials: detectedMaterials.map(m => m.name),
+        materials: colourMaterials,
         ideaTitle: selectedIdea?.title || undefined,
         ideaSteps: selectedIdea?.steps || []
       }
@@ -322,19 +328,44 @@ export default function Create() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        console.error('â¥ API Error:', errorData)
+        console.error('❌ API Error:', errorData)
         throw new Error(errorData.error || 'API request failed')
       }
 
       const data = await response.json()
-      console.log('â¥ Palette generated successfully:', data)
-      // Store the palette data for mixing guide functionality
+      console.log('✅ Palette generated successfully:', data)
+      // Set colour matches for display
+      if (data.colors && Array.isArray(data.colors)) {
+        const matches = data.colors.map((color: any) => ({
+          hex: color.hex,
+          name: color.name,
+          status: 'have' as const, // Default to have since it's from materials
+          matchedMaterial: color.materialSource
+        }))
+        setColourMatches(matches)
+      }
     } catch (error: unknown) {
-      console.error('â¥ Palette generation failed:', error)
+      console.error('💥 Palette generation failed:', error)
       setError(error instanceof Error ? error.message : 'Palette generation failed')
       setCurrentScreen('error')
     }
   }
+
+  const filterColourMaterials = (materials: Material[]): string[] => {
+  const colourMaterials = [
+    'paint', 'watercolor', 'watercolour', 'acrylic', 'pastel', 'chalk', 
+    'crayon', 'ink', 'dye', 'charcoal', 'colored pencil', 
+    'marker', 'pressed flowers', 'pressed leaves', 'flowers', 'leaves',
+    'pigment', 'oil paint', 'tempera', 'gouache', 'watercolor paint',
+    'acrylic paint', 'oil paints', 'watercolors', 'coloured pencils'
+  ]
+  
+  return materials
+    .filter(m => colourMaterials.some(cm => 
+      m.name.toLowerCase().includes(cm.toLowerCase())
+    ))
+    .map(m => m.name)
+}
 
   const confirmMaterials = () => {
     generateIdeas()
@@ -352,101 +383,8 @@ export default function Create() {
     setInputData({ method: null })
   }
 
-  const rgbToHex = (r: number, g: number, b: number): string => {
-    return '#' + [r, g, b].map(x => {
-      const hex = x.toString(16)
-      return hex.length === 1 ? '0' + hex : hex
-    }).join('')
-  }
-
-  const extractDominantColours = (imageElement: HTMLImageElement): string[] => {
-    const canvas = canvasRef.current
-    if (!canvas) return []
-
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return []
-
-    canvas.width = imageElement.width
-    canvas.height = imageElement.height
-    ctx.drawImage(imageElement, 0, 0)
-
-    const colourMap = new Map<string, number>()
-    const sampleSize = 10
-    const stepX = Math.floor(canvas.width / sampleSize)
-    const stepY = Math.floor(canvas.height / sampleSize)
-
-    for (let y = 0; y < canvas.height; y += stepY) {
-      for (let x = 0; x < canvas.width; x += stepX) {
-        const imageData = ctx.getImageData(x, y, 1, 1)
-        const [r, g, b] = imageData.data
-        const hex = rgbToHex(r, g, b)
-        
-        // Skip very light or very dark colours
-        const brightness = (r + g + b) / 3
-        if (brightness > 240 || brightness < 15) continue
-        
-        colourMap.set(hex, (colourMap.get(hex) || 0) + 1)
-      }
-    }
-
-    // Sort by frequency and return top 6 colours
-    return Array.from(colourMap.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6)
-      .map(([hex]) => hex)
-  }
-
-  const matchColours = async (colours: string[]) => {
-    try {
-      const response = await fetch('/api/match-colours', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          extractedColours: colours,
-          materials: detectedMaterials.map(m => m.name)
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || 'API request failed')
-      }
-
-      const matches = await response.json()
-      setColourMatches(matches)
-    } catch (error: unknown) {
-      console.error('Colour matching failed:', error)
-    }
-  }
-
-  const processIdeaColours = async (idea: Idea) => {
-    console.log('Processing colours for idea:', idea.title)
-    
-    const imageUrl = `https://picsum.photos/seed/${encodeURIComponent(idea.title)}/400/200`
-    const img = document.createElement('img')
-    img.crossOrigin = 'anonymous'
-    
-    img.onload = () => {
-      console.log('Image loaded, extracting colours...')
-      const colours = extractDominantColours(img)
-      console.log('Extracted colours:', colours)
-      matchColours(colours)
-    }
-    
-    img.onerror = () => {
-      console.error('Failed to load reference image')
-    }
-    
-    img.src = imageUrl
-  }
-
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Hidden canvas for colour extraction */}
-      <canvas ref={canvasRef} style={{ display: 'none' }} />
-      
       <div className="px-6 py-12 max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
@@ -842,7 +780,7 @@ export default function Create() {
                       onClick={() => {
                         setSelectedIdea(idea)
                         setCurrentScreen('palette')
-                        processIdeaColours(idea)
+                        generatePalette()
                       }}
                       className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all mt-4"
                     >
@@ -916,8 +854,24 @@ export default function Create() {
                   <div className="flex-1">
                     {colourMatches.length === 0 ? (
                       <div className="text-center py-8">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-3"></div>
-                        <p className="text-text-secondary text-sm">Extracting colours...</p>
+                        {filterColourMaterials(detectedMaterials).length === 0 ? (
+                          <>
+                            <div className="text-text-secondary mb-3">
+                              No colour materials detected — add paints or pigments to see a palette
+                            </div>
+                            <button
+                              onClick={() => setCurrentScreen('ideas')}
+                              className="px-4 py-2 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
+                            >
+                              Back to materials
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-3"></div>
+                            <p className="text-text-secondary text-sm">Generating palette...</p>
+                          </>
+                        )}
                       </div>
                     ) : (
                       <>
@@ -942,7 +896,7 @@ export default function Create() {
                                   ? 'bg-green-500 text-white' 
                                   : 'bg-purple-500 text-white'
                               }`}>
-                                {match.status === 'have' ? 'ü' : '+'}
+                                {match.status === 'have' ? '✓' : '+'}
                               </div>
                               
                               {/* Tooltip */}
@@ -959,7 +913,7 @@ export default function Create() {
                         <div className="flex items-center gap-4 text-sm text-text-secondary">
                           <div className="flex items-center gap-1">
                             <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
-                              <span className="text-white text-xs">ü</span>
+                              <span className="text-white text-xs">✓</span>
                             </div>
                             <span>You have this</span>
                           </div>
