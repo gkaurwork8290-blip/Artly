@@ -49,9 +49,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const data = await response.json();
     const rawText = data.content?.[0]?.text || '[]';
+    const cleaned = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    console.log('Cleaned response text:', cleaned);
     
     try {
-      const materials = JSON.parse(rawText);
+      const materials = JSON.parse(cleaned);
       return res.status(200).json({ materials });
     } catch (parseError) {
       return res.status(500).json({ error: 'Failed to parse API response', rawResponse: rawText });
