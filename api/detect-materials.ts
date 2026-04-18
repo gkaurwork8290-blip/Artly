@@ -1,9 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  console.log('API Key prefix:', process.env.CLAUDE_API_KEY?.substring(0, 20));
-  console.log('VITE Key prefix:', process.env.VITE_CLAUDE_API_KEY?.substring(0, 20));
-  
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -12,7 +9,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { image, text } = req.body;
-  const apiKey = process.env.CLAUDE_API_KEY || process.env.VITE_CLAUDE_API_KEY;
+  const apiKey = process.env.ANTHROPIC_API_KEY;
 
   if (!apiKey) return res.status(500).json({ error: 'API key not configured' });
 
@@ -23,33 +20,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ]
     : [{ type: 'text', text: `Extract art materials from: "${text}". Reply with ONLY a JSON array like: [{"name":"acrylic paint","category":"paint","confidence":"high"}]` }];
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01'
-    },
-    body: JSON.stringify({
-      model: 'claude-haiku-20240307',
-      max_tokens: 1024,
-      system: 'You are an art materials identifier. Always respond with ONLY a valid JSON array, nothing else. No markdown, no explanation.',
-      messages: [{ role: 'user', content: userContent }]
-    })
-  });
-
-  const data = await response.json();
-  console.log('Raw Claude response:', JSON.stringify(data));
-  
-  const rawText = data.content?.[0]?.text || '[]';
-  console.log('Raw text:', rawText);
-  
   try {
-    const materials = JSON.parse(rawText);
-    console.log('Parsed materials:', materials);
-    return res.status(200).json({ materials });
-  } catch (e) {
-    console.log('Parse error, raw was:', rawText);
-    return res.status(200).json({ materials: [], debug: rawText });
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 1024,
+        system: 'You are an art materials identifier. Always respond with ONLY a valid JSON array, nothing else. No markdown, no explanation.',
+        messages: [{ role: 'user', content: userContent }]
+      })
+    });
+
+    if (!response.ok) {
+      return res.status(500).json({ error: `API request failed: ${response.status}` });
+    }
+
+    const data = await response.json();
+    const rawText = data.content?.[0]?.text || '[]';
+    
+    try {
+      const materials = JSON.parse(rawText);
+      return res.status(200).json({ materials });
+    } catch (parseError) {
+      return res.status(500).json({ error: 'Failed to parse API response', rawResponse: rawText });
+    }
+  } catch (error) {
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }
