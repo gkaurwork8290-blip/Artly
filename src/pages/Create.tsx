@@ -24,19 +24,6 @@ type Idea = {
   steps: string[]
 }
 
-type Color = {
-  name: string
-  hex: string
-  materialSource: string
-  mixingNotes: string
-}
-
-type Palette = {
-  colors: Color[]
-  complementaryPairs: { color1: string; color2: string; useCase: string }[]
-  harmoniousCombinations: string[]
-}
-
 type KitItem = {
   item: string
   reason: string
@@ -64,9 +51,10 @@ export default function Create() {
   const [showThemeInput, setShowThemeInput] = useState(false)
   const [expandedIdea, setExpandedIdea] = useState<number | null>(null)
   const [selectedIdea, setSelectedIdea] = useState<Idea | null>(null)
-  const [palette, setPalette] = useState<Palette | null>(null)
+  const [colourMatches, setColourMatches] = useState<any[]>([])
   const [kit, setKit] = useState<ShoppingKit | null>(null)
   const [selectedCountry] = useState<string>('')
+  const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -334,15 +322,15 @@ export default function Create() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        console.error('❌ API Error:', errorData)
+        console.error('â¥ API Error:', errorData)
         throw new Error(errorData.error || 'API request failed')
       }
 
       const data = await response.json()
-      console.log('✅ Palette generated successfully:', data)
-      setPalette(data)
+      console.log('â¥ Palette generated successfully:', data)
+      // Store the palette data for mixing guide functionality
     } catch (error: unknown) {
-      console.error('💥 Palette generation failed:', error)
+      console.error('â¥ Palette generation failed:', error)
       setError(error instanceof Error ? error.message : 'Palette generation failed')
       setCurrentScreen('error')
     }
@@ -364,8 +352,101 @@ export default function Create() {
     setInputData({ method: null })
   }
 
+  const rgbToHex = (r: number, g: number, b: number): string => {
+    return '#' + [r, g, b].map(x => {
+      const hex = x.toString(16)
+      return hex.length === 1 ? '0' + hex : hex
+    }).join('')
+  }
+
+  const extractDominantColours = (imageElement: HTMLImageElement): string[] => {
+    const canvas = canvasRef.current
+    if (!canvas) return []
+
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return []
+
+    canvas.width = imageElement.width
+    canvas.height = imageElement.height
+    ctx.drawImage(imageElement, 0, 0)
+
+    const colourMap = new Map<string, number>()
+    const sampleSize = 10
+    const stepX = Math.floor(canvas.width / sampleSize)
+    const stepY = Math.floor(canvas.height / sampleSize)
+
+    for (let y = 0; y < canvas.height; y += stepY) {
+      for (let x = 0; x < canvas.width; x += stepX) {
+        const imageData = ctx.getImageData(x, y, 1, 1)
+        const [r, g, b] = imageData.data
+        const hex = rgbToHex(r, g, b)
+        
+        // Skip very light or very dark colours
+        const brightness = (r + g + b) / 3
+        if (brightness > 240 || brightness < 15) continue
+        
+        colourMap.set(hex, (colourMap.get(hex) || 0) + 1)
+      }
+    }
+
+    // Sort by frequency and return top 6 colours
+    return Array.from(colourMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([hex]) => hex)
+  }
+
+  const matchColours = async (colours: string[]) => {
+    try {
+      const response = await fetch('/api/match-colours', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          extractedColours: colours,
+          materials: detectedMaterials.map(m => m.name)
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'API request failed')
+      }
+
+      const matches = await response.json()
+      setColourMatches(matches)
+    } catch (error: unknown) {
+      console.error('Colour matching failed:', error)
+    }
+  }
+
+  const processIdeaColours = async (idea: Idea) => {
+    console.log('Processing colours for idea:', idea.title)
+    
+    const imageUrl = `https://picsum.photos/seed/${encodeURIComponent(idea.title)}/400/200`
+    const img = document.createElement('img')
+    img.crossOrigin = 'anonymous'
+    
+    img.onload = () => {
+      console.log('Image loaded, extracting colours...')
+      const colours = extractDominantColours(img)
+      console.log('Extracted colours:', colours)
+      matchColours(colours)
+    }
+    
+    img.onerror = () => {
+      console.error('Failed to load reference image')
+    }
+    
+    img.src = imageUrl
+  }
+
   return (
     <div className="min-h-screen bg-background pb-20">
+      {/* Hidden canvas for colour extraction */}
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
+      
       <div className="px-6 py-12 max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
@@ -760,7 +841,8 @@ export default function Create() {
                     <button
                       onClick={() => {
                         setSelectedIdea(idea)
-                        generatePalette()
+                        setCurrentScreen('palette')
+                        processIdeaColours(idea)
                       }}
                       className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all mt-4"
                     >
@@ -807,116 +889,114 @@ export default function Create() {
                 </div>
               </div>
             )}
-            
+
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-semibold text-text-primary">
                 {selectedIdea ? `Colour Palette for ${selectedIdea.title}` : 'Your Color Palette'}
               </h3>
             </div>
 
-            {palette === null ? (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-text-secondary">Mixing your palette...</p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {/* Color Swatches */}
-                <div className="bg-surface2 rounded-xl p-6">
-                  <h4 className="text-lg font-semibold text-text-primary mb-4">Color Swatches</h4>
-                  <div className="grid grid-cols-4 md:grid-cols-6 gap-4">
-                    {palette.colors.map((color, index) => (
-                      <div key={index} className="text-center group cursor-pointer">
-                        <div 
-                          className="w-16 h-16 rounded-full border-2 border-surface3 mb-2 mx-auto group-hover:scale-110 transition-transform"
-                          style={{ backgroundColor: color.hex }}
-                          title={color.name}
-                        />
-                        <p className="text-sm font-medium text-text-primary">{color.name}</p>
-                        <p className="text-xs text-text-secondary">{color.hex}</p>
-                        <p className="text-xs text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity">
-                          From: {color.materialSource}
-                        </p>
-                      </div>
-                    ))}
+            {/* Colour Extraction Display */}
+            {selectedIdea && (
+              <div className="bg-surface2 rounded-xl p-6">
+                <h4 className="text-lg font-semibold text-text-primary mb-4">Colours from your inspiration</h4>
+                
+                <div className="flex gap-6 items-start">
+                  {/* Reference Image */}
+                  <div className="flex-shrink-0">
+                    <img 
+                      src={`https://picsum.photos/seed/${encodeURIComponent(selectedIdea.title)}/120/80`}
+                      alt={selectedIdea.title}
+                      className="w-30 h-20 rounded-lg object-cover"
+                      style={{ width: '120px', height: '80px' }}
+                    />
                   </div>
-                </div>
-
-                {/* Mixing Notes */}
-                <div className="bg-surface2 rounded-xl p-6">
-                  <h4 className="text-lg font-semibold text-text-primary mb-4">Mixing Notes</h4>
-                  <div className="space-y-3">
-                    {palette.colors.map((color, index) => (
-                      <div key={index} className="bg-surface rounded-lg p-4">
-                        <div className="flex items-center gap-3 mb-2">
-                          <div 
-                            className="w-8 h-8 rounded-full border-2 border-surface3"
-                            style={{ backgroundColor: color.hex }}
-                          />
-                          <div>
-                            <p className="font-medium text-text-primary">{color.name}</p>
-                            <p className="text-sm text-text-secondary">{color.hex}</p>
+                  
+                  {/* Colour Swatches */}
+                  <div className="flex-1">
+                    {colourMatches.length === 0 ? (
+                      <div className="text-center py-8">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-3"></div>
+                        <p className="text-text-secondary text-sm">Extracting colours...</p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex flex-wrap gap-3 mb-4">
+                          {colourMatches.map((match, index) => (
+                            <div key={index} className="relative group">
+                              <div 
+                                className="w-12 h-12 rounded-full border-2 border-surface3 transition-all"
+                                style={{ 
+                                  backgroundColor: match.hex,
+                                  ...(match.status === 'need' ? { 
+                                    borderStyle: 'dashed',
+                                    opacity: 0.7 
+                                  } : {})
+                                }}
+                                title={match.matchedMaterial ? `You have: ${match.matchedMaterial}` : match.name}
+                              />
+                              
+                              {/* Badge */}
+                              <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
+                                match.status === 'have' 
+                                  ? 'bg-green-500 text-white' 
+                                  : 'bg-purple-500 text-white'
+                              }`}>
+                                {match.status === 'have' ? 'ü' : '+'}
+                              </div>
+                              
+                              {/* Tooltip */}
+                              {match.matchedMaterial && (
+                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                                  {match.matchedMaterial}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        
+                        {/* Legend */}
+                        <div className="flex items-center gap-4 text-sm text-text-secondary">
+                          <div className="flex items-center gap-1">
+                            <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
+                              <span className="text-white text-xs">ü</span>
+                            </div>
+                            <span>You have this</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div className="w-4 h-4 rounded-full bg-purple-500 flex items-center justify-center">
+                              <span className="text-white text-xs">+</span>
+                            </div>
+                            <span>Add to your kit</span>
                           </div>
                         </div>
-                        <p className="text-sm text-text-secondary">{color.mixingNotes}</p>
-                      </div>
-                    ))}
+                      </>
+                    )}
                   </div>
-                </div>
-
-                {/* Complementary Pairs */}
-                <div className="bg-surface2 rounded-xl p-6">
-                  <h4 className="text-lg font-semibold text-text-primary mb-4">Complementary Pairs</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {palette.complementaryPairs.map((pair, index) => (
-                      <div key={index} className="bg-surface rounded-lg p-4">
-                        <div className="flex items-center gap-4 mb-3">
-                          <div className="flex items-center gap-2">
-                            <div 
-                              className="w-8 h-8 rounded-full border-2 border-surface3"
-                              style={{ backgroundColor: pair.color1 }}
-                            />
-                            <span className="text-sm font-medium text-text-primary">{pair.color1}</span>
-                          </div>
-                          <div className="text-text-secondary">+</div>
-                          <div className="flex items-center gap-2">
-                            <div 
-                              className="w-8 h-8 rounded-full border-2 border-surface3"
-                              style={{ backgroundColor: pair.color2 }}
-                            />
-                            <span className="text-sm font-medium text-text-primary">{pair.color2}</span>
-                          </div>
-                        </div>
-                        <p className="text-sm text-text-secondary">{pair.useCase}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex gap-4 justify-center mt-8">
-                  {selectedIdea && (
-                    <button
-                      onClick={() => setCurrentScreen('palette')}
-                      className="px-6 py-3 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all"
-                    >
-                      View Colour Palette
-                    </button>
-                  )}
-                  <button
-                    onClick={() => generateKit(selectedCountry || 'US')}
-                    className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
-                  >
-                    Build My Kit
-                  </button>
-                  <button
-                    onClick={tryAgain}
-                    className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
-                  >
-                    Start over
-                  </button>
                 </div>
               </div>
             )}
+
+            <div className="flex gap-4 justify-center mt-8">
+              <button
+                onClick={() => generatePalette()}
+                className="px-6 py-3 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all"
+              >
+                Mixing Guide
+              </button>
+              <button
+                onClick={() => generateKit(selectedCountry || 'US')}
+                className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
+              >
+                Build My Kit
+              </button>
+              <button
+                onClick={tryAgain}
+                className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
+              >
+                Start over
+              </button>
+            </div>
           </div>
         )}
 
