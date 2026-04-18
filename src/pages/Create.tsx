@@ -64,9 +64,9 @@ export default function Create() {
   const [showThemeInput, setShowThemeInput] = useState(false)
   const [expandedIdea, setExpandedIdea] = useState<number | null>(null)
   const [selectedIdea, setSelectedIdea] = useState<Idea | null>(null)
-  const [palette] = useState<Palette | null>(null)
+  const [palette, setPalette] = useState<Palette | null>(null)
   const [kit, setKit] = useState<ShoppingKit | null>(null)
-  const [selectedCountry, setSelectedCountry] = useState<string>('')
+  const [selectedCountry] = useState<string>('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -305,33 +305,44 @@ export default function Create() {
   }
 
   const generatePalette = async () => {
+    console.log('🎨 generatePalette called')
+    console.log('📝 selectedIdea:', selectedIdea)
+    console.log('🎨 detectedMaterials:', detectedMaterials)
+    
     setCurrentScreen('palette')
     setError(null)
     // Note: palette state is read-only, so we can't set it directly
 
     try {
+      const requestBody = {
+        materials: detectedMaterials.map(m => m.name),
+        ideaTitle: selectedIdea?.title || undefined,
+        ideaSteps: selectedIdea?.steps || []
+      }
+      
+      console.log('🚀 Sending request body:', requestBody)
+      
       const response = await fetch('/api/generate-palette', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          materials: detectedMaterials.map(m => m.name),
-          ideaTitle: selectedIdea?.title || undefined,
-          ideaSteps: selectedIdea?.steps || []
-        }),
+        body: JSON.stringify(requestBody),
       })
+      
+      console.log('📡 Response status:', response.status)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
+        console.error('❌ API Error:', errorData)
         throw new Error(errorData.error || 'API request failed')
       }
 
       const data = await response.json()
-      // Note: palette state is read-only, so we can't set it directly
-      console.log('Palette generated:', data)
+      console.log('✅ Palette generated successfully:', data)
+      setPalette(data)
     } catch (error: unknown) {
-      console.error('Palette generation failed:', error)
+      console.error('💥 Palette generation failed:', error)
       setError(error instanceof Error ? error.message : 'Palette generation failed')
       setCurrentScreen('error')
     }
@@ -762,21 +773,6 @@ export default function Create() {
 
             <div className="flex gap-4 justify-center mt-8">
               <button
-                onClick={() => generateKit(selectedCountry)}
-                className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
-              >
-                Build My Kit
-              </button>
-              <button
-                onClick={() => {
-                  const country = selectedCountry || (navigator.language.startsWith('en') ? 'US' : 'UK')
-                  setSelectedCountry(country)
-                }}
-                className="px-4 py-2 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
-              >
-                🌍 {selectedCountry || 'Auto-detect'}
-              </button>
-              <button
                 onClick={tryAgain}
                 className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
               >
@@ -898,8 +894,16 @@ export default function Create() {
                 </div>
 
                 <div className="flex gap-4 justify-center mt-8">
+                  {selectedIdea && (
+                    <button
+                      onClick={() => setCurrentScreen('palette')}
+                      className="px-6 py-3 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all"
+                    >
+                      View Colour Palette
+                    </button>
+                  )}
                   <button
-                    onClick={() => generateKit(selectedCountry)}
+                    onClick={() => generateKit(selectedCountry || 'US')}
                     className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
                   >
                     Build My Kit
