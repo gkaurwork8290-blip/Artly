@@ -39,15 +39,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
     });
 
-    const errorBody = await response.text();
+    const responseText = await response.text();
     console.log('Anthropic response status:', response.status);
-    console.log('Anthropic response body:', errorBody);
 
     if (!response.ok) {
-      return res.status(500).json({ error: `API request failed: ${response.status}` });
+      return res.status(500).json({ error: `Anthropic error: ${responseText}` });
     }
 
-    const data = await response.json();
+    const data = JSON.parse(responseText);
     const rawText = data.content?.[0]?.text || '[]';
     const cleaned = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     console.log('Cleaned response text:', cleaned);
