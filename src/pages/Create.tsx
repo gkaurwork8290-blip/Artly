@@ -145,7 +145,7 @@ export default function Create() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || `API request failed: ${response.status}`)
+        throw new Error(errorData.error || `API request failed`)
       }
 
       const data = await response.json()
