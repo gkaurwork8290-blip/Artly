@@ -647,14 +647,30 @@ export default function Create() {
                 {ideas.map((idea, index) => (
                   <div key={index} className="bg-surface border border-surface2 rounded-xl p-6">
                     <div className="flex justify-between items-start mb-3">
-                      <h4 className="text-lg font-semibold text-white">{idea.title}</h4>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        idea.difficulty === 'beginner' ? 'bg-green-500 text-white' :
-                        idea.difficulty === 'intermediate' ? 'bg-yellow-500 text-white' :
-                        'bg-red-500 text-white'
-                      }`}>
-                        {idea.difficulty}
-                      </span>
+                      <div className="flex-1">
+                        <h4 className="text-lg font-semibold text-white">{idea.title}</h4>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          idea.difficulty === 'beginner' ? 'bg-green-500 text-white' :
+                          idea.difficulty === 'intermediate' ? 'bg-yellow-500 text-white' :
+                          'bg-red-500 text-white'
+                        }`}>
+                          {idea.difficulty}
+                        </span>
+                      </div>
+                      <div className="relative">
+                        <img 
+                          src={`https://picsum.photos/seed/${encodeURIComponent(idea.title)}/400/200`}
+                          alt={idea.title}
+                          className="w-full h-40 object-cover rounded-lg mb-3"
+                          style={{ borderRadius: '12px 12px 0 0' }}
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none'
+                          }}
+                        />
+                        <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs font-medium" style={{ borderRadius: '8px', padding: '2px 8px', fontSize: '11px' }}>
+                          Reference
+                        </div>
+                      </div>
                     </div>
                     <p className="text-text-secondary mb-3">{idea.description}</p>
                     <div className="flex justify-between items-center mb-3">
