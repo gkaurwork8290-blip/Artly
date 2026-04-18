@@ -56,9 +56,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const materials = JSON.parse(cleaned);
       return res.status(200).json({ materials });
     } catch (parseError) {
-      return res.status(500).json({ error: 'Failed to parse API response', rawResponse: rawText });
+      return res.status(500).json({ error: 'Failed to parse API response', rawResponse: cleaned });
     }
   } catch (error) {
+    console.error('Internal server error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
