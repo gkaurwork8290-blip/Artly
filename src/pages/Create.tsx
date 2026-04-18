@@ -48,6 +48,7 @@ type ShoppingKit = {
   essentials: KitItem[]
   niceToHave: KitItem[]
   totalEstimatedCost: string
+  complementaryPairs: { color1: string; color2: string; useCase: string }[]
 }
 
 export default function Create() {
@@ -62,7 +63,7 @@ export default function Create() {
   const [themeInput, setThemeInput] = useState('')
   const [showThemeInput, setShowThemeInput] = useState(false)
   const [expandedIdea, setExpandedIdea] = useState<number | null>(null)
-  const [palette, setPalette] = useState<Palette | null>(null)
+  const [palette] = useState<Palette | null>(null)
   const [kit, setKit] = useState<ShoppingKit | null>(null)
   const [selectedCountry, setSelectedCountry] = useState<string>('')
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -291,42 +292,12 @@ export default function Create() {
       }
 
       const data = await response.json()
-      const kit = data || null
+      const kit: any = data || null
 
       setKit(kit)
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Kit generation failed:', error)
       setError(error instanceof Error ? error.message : 'Kit generation failed')
-      setCurrentScreen('error')
-    }
-  }
-
-  const generatePalette = async () => {
-    setCurrentScreen('palette')
-    setError(null)
-    setPalette(null)
-
-    try {
-      const response = await fetch('/api/generate-palette', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          materials: detectedMaterials.map(m => m.name)
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || 'API request failed')
-      }
-
-      const data = await response.json()
-      setPalette(data)
-    } catch (error: any) {
-      console.error('Palette generation failed:', error)
-      setError(error.message || 'Palette generation failed')
       setCurrentScreen('error')
     }
   }
@@ -747,7 +718,7 @@ export default function Create() {
 
             <div className="flex gap-4 justify-center mt-8">
               <button
-                onClick={generateKit}
+                onClick={() => generateKit(selectedCountry)}
                 className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
               >
                 Build My Kit
@@ -857,27 +828,23 @@ export default function Create() {
                   </div>
                 </div>
 
-                {/* Harmonious Combinations */}
-                <div className="bg-surface2 rounded-xl p-6">
-                  <h4 className="text-lg font-semibold text-text-primary mb-4">Harmonious Combinations</h4>
-                  <div className="space-y-2">
-                    {palette.harmoniousCombinations.map((combination, index) => (
-                      <div key={index} className="bg-surface rounded-lg p-4">
-                        <p className="text-sm text-text-secondary">{combination}</p>
-                      </div>
-                    ))}
-                  </div>
+                <div className="flex gap-4 justify-center mt-8">
+                  <button
+                    onClick={() => generateKit(selectedCountry)}
+                    className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
+                  >
+                    Build My Kit
+                  </button>
+                  <button
+                    onClick={tryAgain}
+                    className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
+                  >
+                    Start over
+                  </button>
                 </div>
               </div>
-            )}   <div className="flex gap-4 justify-center mt-8">
-                <button
-                  onClick={tryAgain}
-                  className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
-                >
-                  Start over
-                </button>
-              </div>
-            </div>
+            )}
+          </div>
         )}
 
         {/* Kit Screen */}
@@ -959,6 +926,7 @@ export default function Create() {
                 </div>
               </div>
             )}
+          </div>
         )}
 
         {/* Error Screen */}
