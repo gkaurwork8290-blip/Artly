@@ -1,5 +1,6 @@
 import { Home, Plus, Clock, BookOpen, User } from 'lucide-react'
 import { useLocation, Link } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 
 const navItems = [
   { name: 'Home', icon: Home, href: '/home' },
@@ -11,6 +12,7 @@ const navItems = [
 
 export default function BottomNav() {
   const location = useLocation()
+  const { user } = useAuth()
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-surface border-t border-surface2 px-4 py-2 z-50">
@@ -18,6 +20,7 @@ export default function BottomNav() {
         {navItems.map((item) => {
           const Icon = item.icon
           const isActive = location.pathname === item.href
+          const isProfileItem = item.name === 'Profile'
           
           return (
             <Link
@@ -29,8 +32,14 @@ export default function BottomNav() {
                   : 'text-text-secondary hover:text-text-primary'
               }`}
             >
-              <Icon size={20} className="mb-1" />
-              <span className="text-xs font-medium">{item.name}</span>
+              <div className="relative">
+                <Icon size={20} className="mb-1" />
+                <span className="text-xs font-medium">{item.name}</span>
+                {/* Show dot on Profile tab when user is NOT signed in */}
+                {isProfileItem && !user && (
+                  <div className="absolute top-1 right-1 w-2 h-2 bg-[#FF3D71] rounded-full"></div>
+                )}
+              </div>
             </Link>
           )
         })}

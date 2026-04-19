@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function Landing() {
+  const { signInWithGoogle } = useAuth()
+
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center relative overflow-hidden">
       {/* Background abstract shapes */}
@@ -27,6 +30,13 @@ export default function Landing() {
           >
             Get Started
           </Link>
+          
+          <button
+            onClick={signInWithGoogle}
+            className="px-8 py-4 border-2 border-[#6C3CE1] text-white font-semibold rounded-full hover:bg-[#6C3CE1]/20 transition-colors duration-200"
+          >
+            Sign in with Google
+          </button>
           
           <Link
             to="/profile"

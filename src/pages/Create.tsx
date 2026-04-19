@@ -1041,6 +1041,18 @@ export default function Create() {
                 </div>
 
                 <div className="flex gap-4 justify-center mt-8">
+                  {detectedMaterials.length > 0 && (
+                    <button
+                      onClick={() => {
+                        // TODO: Implement Material Insights modal
+                        alert('Material Insights coming soon!')
+                      }}
+                      className="px-6 py-3 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all flex items-center gap-2"
+                    >
+                      <BookOpen className="w-4 h-4" />
+                      View Material Insights
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       alert('Coming in Step 14: Export Kit functionality!')
