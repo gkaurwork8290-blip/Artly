@@ -1,5 +1,5 @@
 import { useState, useRef, type ChangeEvent } from 'react'
-import { Image, PenLine, X, Plus, Camera, BookOpen } from 'lucide-react'
+import { Image, PenLine, X, Plus, Camera, BookOpen, ChevronDown, ChevronUp } from 'lucide-react'
 
 type InputMethod = 'upload' | 'camera' | 'describe' | 'quickscan' | null
 type InputData = {
@@ -54,6 +54,9 @@ export default function Create() {
   const [colourMatches, setColourMatches] = useState<any[]>([])
   const [kit, setKit] = useState<ShoppingKit | null>(null)
   const [selectedCountry] = useState<string>('')
+  const [materialInsights, setMaterialInsights] = useState<any[]>([])
+  const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set())
+  const [loadingInsights, setLoadingInsights] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -349,6 +352,41 @@ export default function Create() {
       setError(error instanceof Error ? error.message : 'Palette generation failed')
       setCurrentScreen('error')
     }
+  }
+
+  const loadMaterialInsights = async () => {
+    setLoadingInsights(true)
+    try {
+      const materials = detectedMaterials.map(m => m.name)
+      const response = await fetch('/api/material-insights', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ materials }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to load material insights')
+      }
+
+      const insights = await response.json()
+      setMaterialInsights(insights)
+    } catch (error) {
+      console.error('Error loading material insights:', error)
+    } finally {
+      setLoadingInsights(false)
+    }
+  }
+
+  const toggleCard = (index: number) => {
+    const newExpanded = new Set(expandedCards)
+    if (newExpanded.has(index)) {
+      newExpanded.delete(index)
+    } else {
+      newExpanded.add(index)
+    }
+    setExpandedCards(newExpanded)
   }
 
   const filterColourMaterials = (materials: Material[]): string[] => {
@@ -1043,14 +1081,12 @@ export default function Create() {
                 <div className="flex gap-4 justify-center mt-8">
                   {detectedMaterials.length > 0 && (
                     <button
-                      onClick={() => {
-                        // TODO: Implement Material Insights modal
-                        alert('Material Insights coming soon!')
-                      }}
-                      className="px-6 py-3 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all flex items-center gap-2"
+                      onClick={loadMaterialInsights}
+                      disabled={loadingInsights}
+                      className="px-6 py-3 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all flex items-center gap-2 disabled:opacity-50"
                     >
                       <BookOpen className="w-4 h-4" />
-                      View Material Insights
+                      {loadingInsights ? 'Analysing your materials...' : 'View Material Insights'}
                     </button>
                   )}
                   <button
@@ -1068,6 +1104,80 @@ export default function Create() {
                     Start over
                   </button>
                 </div>
+
+                {/* Material Insights Cards */}
+                {materialInsights.length > 0 && (
+                  <div className="mt-8 space-y-3">
+                    <h4 className="text-lg font-semibold text-white mb-4">Material Insights</h4>
+                    {materialInsights.map((insight, index) => (
+                      <div key={index} className="bg-[#1A1A2E] rounded-xl p-4 mb-3">
+                        <button
+                          onClick={() => toggleCard(index)}
+                          className="w-full flex justify-between items-center text-left"
+                        >
+                          <h5 className="text-white font-medium">{insight.material}</h5>
+                          {expandedCards.has(index) ? (
+                            <ChevronUp className="w-5 h-5 text-white" />
+                          ) : (
+                            <ChevronDown className="w-5 h-5 text-white" />
+                          )}
+                        </button>
+                        
+                        {expandedCards.has(index) && (
+                          <div className="mt-4 space-y-4">
+                            {insight.tips && insight.tips.length > 0 && (
+                              <div>
+                                <h6 className="text-sm font-medium text-white mb-2">Tips</h6>
+                                <ul className="list-disc list-inside space-y-1">
+                                  {insight.tips.map((tip: string, tipIndex: number) => (
+                                    <li key={tipIndex} className="text-sm" style={{ color: '#6C3CE1' }}>
+                                      {tip}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            
+                            {insight.careInstructions && insight.careInstructions.length > 0 && (
+                              <div>
+                                <h6 className="text-sm font-medium text-white mb-2">Care Instructions</h6>
+                                <ul className="list-disc list-inside space-y-1">
+                                  {insight.careInstructions.map((instruction: string, instructionIndex: number) => (
+                                    <li key={instructionIndex} className="text-sm" style={{ color: '#3D9BE9' }}>
+                                      {instruction}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            
+                            {insight.commonMistakes && insight.commonMistakes.length > 0 && (
+                              <div>
+                                <h6 className="text-sm font-medium text-white mb-2">Common Mistakes</h6>
+                                <ul className="list-disc list-inside space-y-1">
+                                  {insight.commonMistakes.map((mistake: string, mistakeIndex: number) => (
+                                    <li key={mistakeIndex} className="text-sm" style={{ color: '#FF3D71' }}>
+                                      {mistake}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            
+                            {insight.shelfLife && (
+                              <div>
+                                <h6 className="text-sm font-medium text-white mb-2">Shelf Life</h6>
+                                <p className="text-sm" style={{ color: '#A0A0C0' }}>
+                                  {insight.shelfLife}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
