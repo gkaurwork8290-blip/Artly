@@ -1,5 +1,5 @@
 import { useState, useRef, type ChangeEvent } from 'react'
-import { Image, PenLine, X, Plus, Camera } from 'lucide-react'
+import { Image, PenLine, X, Plus, Camera, BookOpen } from 'lucide-react'
 
 type InputMethod = 'upload' | 'camera' | 'describe' | 'quickscan' | null
 type InputData = {
