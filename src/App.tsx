@@ -8,6 +8,7 @@ import Journal from './pages/Journal'
 import Profile from './pages/Profile'
 import Onboarding from './pages/Onboarding'
 import BottomNav from './components/BottomNav'
+import { AuthProvider } from './contexts/AuthContext'
 
 function AppContent() {
   const location = useLocation()
@@ -49,9 +50,13 @@ function AppContent() {
 
 function App() {
   return (
-    <Router>
-      <AppContent />
-    </Router>
+    <AuthProvider>
+      <Router>
+        <div className="app">
+          <AppContent />
+        </div>
+      </Router>
+    </AuthProvider>
   )
 }
 
