@@ -447,7 +447,7 @@ export default function Create() {
                   alt="Uploaded" 
                   className="w-full max-w-md mx-auto rounded-lg mb-6"
                 />
-                <div className="flex gap-4 justify-center flex-wrap gap-2" style={{flexWrap: 'wrap', gap: '8px'}}>
+                <div className="flex gap-4 justify-center flex-wrap gap-2">
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
@@ -482,7 +482,7 @@ export default function Create() {
                   playsInline
                   className="w-full max-w-md mx-auto rounded-lg mb-6"
                 />
-                <div className="flex gap-4 justify-center flex-wrap gap-2" style={{flexWrap: 'wrap', gap: '8px'}}>
+                <div className="flex gap-4 justify-center flex-wrap gap-2">
                   <button
                     onClick={stopCamera}
                     className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
@@ -509,7 +509,7 @@ export default function Create() {
                   alt="Captured" 
                   className="w-full max-w-md mx-auto rounded-lg mb-6"
                 />
-                <div className="flex gap-4 justify-center flex-wrap gap-2" style={{flexWrap: 'wrap', gap: '8px'}}>
+                <div className="flex gap-4 justify-center flex-wrap gap-2">
                   <button
                     onClick={handleRetake}
                     className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
@@ -537,7 +537,7 @@ export default function Create() {
                   placeholder="e.g. I have crimson acrylic paint, a flat brush, air dry clay and some canvas board..."
                   className="w-full h-32 p-4 bg-background border border-surface2 rounded-lg text-text-primary placeholder-text-secondary resize-none focus:outline-none focus:border-primary mb-6"
                 />
-                <div className="flex gap-4 justify-center flex-wrap gap-2" style={{flexWrap: 'wrap', gap: '8px'}}>
+                <div className="flex gap-4 justify-center flex-wrap gap-2">
                   <button
                     onClick={backToSelection}
                     className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
@@ -587,7 +587,7 @@ export default function Create() {
                   alt="Quick Scan" 
                   className="w-full max-w-md mx-auto rounded-lg mb-6"
                 />
-                <div className="flex gap-4 justify-center flex-wrap gap-2" style={{flexWrap: 'wrap', gap: '8px'}}>
+                <div className="flex gap-4 justify-center flex-wrap gap-2">
                   <button
                     onClick={handleQuickScan}
                     className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
@@ -660,7 +660,7 @@ export default function Create() {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-4 justify-center" style={{flexWrap: 'wrap', gap: '8px'}}>
+            <div className="flex gap-4 justify-center flex-wrap gap-2">
               <button
                 onClick={tryAgain}
                 className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
@@ -781,7 +781,7 @@ export default function Create() {
               </div>
             )}
 
-            <div className="flex gap-4 justify-center mt-8 flex-wrap gap-2" style={{flexWrap: 'wrap', gap: '8px'}}>
+            <div className="flex gap-4 justify-center mt-8 flex-wrap gap-2">
               <button
                 onClick={tryAgain}
                 className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
@@ -921,7 +921,7 @@ export default function Create() {
               </div>
             )}
 
-            <div className="flex gap-4 justify-center mt-8 flex-wrap gap-2" style={{flexWrap: 'wrap', gap: '8px'}}>
+            <div className="flex gap-4 justify-center mt-8 flex-wrap gap-2">
               <button
                 onClick={() => generatePalette()}
                 className="px-6 py-3 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all"
@@ -955,7 +955,7 @@ export default function Create() {
         {/* Error Screen */}
         {currentScreen === 'error' && (
           <div className="bg-surface border border-surface2 rounded-2xl p-6 text-center">
-            <div className="text-xl mb-4" style={{fontSize: 'var(--fs-display)'}}>â ï¸</div>
+            <div className="text-lg mb-4" style={{fontSize: 'var(--fs-display)'}}>â ï¸</div>
             <h3 className="font-semibold text-text-primary mb-2" style={{fontSize: 'var(--fs-h1)'}}>
               {error === 'No materials detected' ? 'No materials found' : 'Something went wrong'}
             </h3>
@@ -965,7 +965,7 @@ export default function Create() {
                 : error
               }
             </p>
-            <div className="flex gap-4 justify-center" style={{flexWrap: 'wrap', gap: '8px'}}>
+            <div className="flex gap-4 justify-center flex-wrap gap-2">
               {error === 'No materials detected' ? (
                 <button
                   onClick={tryAgain}
