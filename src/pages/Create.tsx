@@ -976,12 +976,16 @@ export default function Create() {
               >
                 Mixing Guide
               </button>
-              <button
-                onClick={() => generateKit(selectedCountry || 'US')}
-                className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
-              >
-                Build My Kit
-              </button>
+              {detectedMaterials.length > 0 && (
+                <button
+                  onClick={loadMaterialInsights}
+                  disabled={loadingInsights}
+                  className="px-6 py-3 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all flex items-center gap-2 disabled:opacity-50"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  {loadingInsights ? 'Analysing your materials...' : 'Material Insights'}
+                </button>
+              )}
               <button
                 onClick={tryAgain}
                 className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
@@ -992,196 +996,6 @@ export default function Create() {
           </div>
         )}
 
-        {/* Kit Screen */}
-        {currentScreen === 'kit' && (
-          <div className="bg-surface border border-surface2 rounded-2xl p-6">
-            {/* Confirmation Banner */}
-            {selectedIdea && (
-              <div className="bg-gradient-to-r from-purple-500/10 to-violet-500/10 border border-purple-500/20 rounded-lg p-4 mb-6">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                    <p className="text-text-primary">
-                      Creating based on: <span className="font-semibold">{selectedIdea.title}</span>
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setSelectedIdea(null)
-                      setCurrentScreen('ideas')
-                    }}
-                    className="text-purple-500 hover:text-purple-600 text-sm font-medium transition-colors"
-                  >
-                    Change
-                  </button>
-                </div>
-              </div>
-            )}
-            
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-semibold text-text-primary">
-                {selectedIdea ? `Your Kit for ${selectedIdea.title}` : 'Your Art Kit'}
-              </h3>
-              <div className="text-sm text-text-secondary">
-                Based on your materials in {selectedCountry || 'your location'}
-              </div>
-            </div>
-
-            {kit === null ? (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-text-secondary">Building your kit...</p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {/* Essentials Section */}
-                <div className="bg-surface2 rounded-xl p-6">
-                  <h4 className="text-lg font-semibold text-white mb-4">Essentials</h4>
-                  <div className="space-y-3">
-                    {kit.essentials.map((item, index) => (
-                      <div key={index} className="bg-surface rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <h5 className="font-medium text-text-primary">{item.item}</h5>
-                          <p className="text-sm text-text-secondary mb-2">{item.reason}</p>
-                          <span className="text-sm font-medium text-primary">{item.estimatedPrice}</span>
-                        </div>
-                        {item.localAlternative && (
-                          <p className="text-xs text-text-secondary">Local alternative: {item.localAlternative}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Nice to Have Section */}
-                <div className="bg-surface2 rounded-xl p-6">
-                  <h4 className="text-lg font-semibold text-white mb-4">Nice to Have</h4>
-                  <div className="space-y-3">
-                    {kit.niceToHave.map((item, index) => (
-                      <div key={index} className="bg-surface rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <h5 className="font-medium text-text-primary">{item.item}</h5>
-                          <p className="text-sm text-text-secondary mb-2">{item.reason}</p>
-                          <span className="text-sm font-medium text-primary">{item.estimatedPrice}</span>
-                        </div>
-                        {item.localAlternative && (
-                          <p className="text-xs text-text-secondary">Local alternative: {item.localAlternative}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Total Cost */}
-                <div className="bg-surface2 rounded-xl p-6">
-                  <h4 className="text-lg font-semibold text-white mb-2">Total Estimated Cost</h4>
-                  <p className="text-2xl font-bold text-primary">{kit.totalEstimatedCost}</p>
-                </div>
-
-                <div className="flex gap-4 justify-center mt-8">
-                  {detectedMaterials.length > 0 && (
-                    <button
-                      onClick={loadMaterialInsights}
-                      disabled={loadingInsights}
-                      className="px-6 py-3 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all flex items-center gap-2 disabled:opacity-50"
-                    >
-                      <BookOpen className="w-4 h-4" />
-                      {loadingInsights ? 'Analysing your materials...' : 'View Material Insights'}
-                    </button>
-                  )}
-                  <button
-                    onClick={() => {
-                      alert('Coming in Step 14: Export Kit functionality!')
-                    }}
-                    className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
-                  >
-                    Export Kit
-                  </button>
-                  <button
-                    onClick={tryAgain}
-                    className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
-                  >
-                    Start over
-                  </button>
-                </div>
-
-                {/* Material Insights Cards */}
-                {materialInsights.length > 0 && (
-                  <div className="mt-8 space-y-3">
-                    <h4 className="text-lg font-semibold text-white mb-4">Material Insights</h4>
-                    {materialInsights.map((insight, index) => (
-                      <div key={index} className="bg-[#1A1A2E] rounded-xl p-4 mb-3">
-                        <button
-                          onClick={() => toggleCard(index)}
-                          className="w-full flex justify-between items-center text-left"
-                        >
-                          <h5 className="text-white font-medium">{insight.material}</h5>
-                          {expandedCards.has(index) ? (
-                            <ChevronUp className="w-5 h-5 text-white" />
-                          ) : (
-                            <ChevronDown className="w-5 h-5 text-white" />
-                          )}
-                        </button>
-                        
-                        {expandedCards.has(index) && (
-                          <div className="mt-4 space-y-4">
-                            {insight.tips && insight.tips.length > 0 && (
-                              <div>
-                                <h6 className="text-sm font-medium text-white mb-2">Tips</h6>
-                                <ul className="list-disc list-inside space-y-1">
-                                  {insight.tips.map((tip: string, tipIndex: number) => (
-                                    <li key={tipIndex} className="text-sm" style={{ color: '#6C3CE1' }}>
-                                      {tip}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                            
-                            {insight.careInstructions && insight.careInstructions.length > 0 && (
-                              <div>
-                                <h6 className="text-sm font-medium text-white mb-2">Care Instructions</h6>
-                                <ul className="list-disc list-inside space-y-1">
-                                  {insight.careInstructions.map((instruction: string, instructionIndex: number) => (
-                                    <li key={instructionIndex} className="text-sm" style={{ color: '#3D9BE9' }}>
-                                      {instruction}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                            
-                            {insight.commonMistakes && insight.commonMistakes.length > 0 && (
-                              <div>
-                                <h6 className="text-sm font-medium text-white mb-2">Common Mistakes</h6>
-                                <ul className="list-disc list-inside space-y-1">
-                                  {insight.commonMistakes.map((mistake: string, mistakeIndex: number) => (
-                                    <li key={mistakeIndex} className="text-sm" style={{ color: '#FF3D71' }}>
-                                      {mistake}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                            
-                            {insight.shelfLife && (
-                              <div>
-                                <h6 className="text-sm font-medium text-white mb-2">Shelf Life</h6>
-                                <p className="text-sm" style={{ color: '#A0A0C0' }}>
-                                  {insight.shelfLife}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Error Screen */}
         {currentScreen === 'error' && (

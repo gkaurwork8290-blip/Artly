@@ -5,7 +5,6 @@ import { useAuth } from '../contexts/AuthContext'
 const navItems = [
   { name: 'Home', icon: Home, href: '/home' },
   { name: 'Create', icon: Plus, href: '/create' },
-  { name: 'History', icon: Clock, href: '/history' },
   { name: 'Journal', icon: BookOpen, href: '/journal' },
   { name: 'Profile', icon: User, href: '/profile' },
 ]
