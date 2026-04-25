@@ -682,9 +682,9 @@ export default function Create() {
         {/* Ideas Screen */}
         {currentScreen === 'ideas' && (
           <div className="bg-surface border border-surface2 rounded-2xl p-6" style={{maxWidth: '100%', padding: '0 16px'}}>
-            <div className="flex justify-between items-center mb-6 text-lg font-bold">
+            <div className="flex flex-col gap-3 mb-6">
                 <h3 className="font-semibold text-text-primary" style={{fontSize: 'var(--fs-h1)'}}>Creative Ideas for You</h3>
-              <div className="flex gap-3 flex-wrap gap-2">
+              <div className="flex gap-2 flex-wrap w-full">
                 {!showThemeInput ? (
                   <div className="flex gap-2 flex-wrap gap-2" style={{flexWrap: 'wrap', gap: '8px'}}>
                     <input
@@ -692,7 +692,7 @@ export default function Create() {
                       value={themeInput}
                       onChange={(e) => setThemeInput(e.target.value)}
                       placeholder="e.g. calm, bold, nature..."
-                      className="flex-1 px-4 py-2 bg-background border border-surface2 rounded-lg text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary"
+                      className="flex-1 min-w-0 px-4 py-2 bg-background border border-surface2 rounded-lg text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary"
                     />
                     <button
                       onClick={() => generateIdeas(themeInput)}
