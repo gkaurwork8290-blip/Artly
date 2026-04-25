@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Home from './pages/Home'
 import Landing from './pages/Landing'
 import Create from './pages/Create'
@@ -16,6 +16,16 @@ function AppContent() {
   const [onboardingComplete, setOnboardingComplete] = useState(() => 
     localStorage.getItem('artly_onboarding_complete') === 'true'
   )
+
+  // Apply theme persistence on component mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('artly_theme')
+    if (savedTheme === 'light') {
+      document.body.classList.add('theme-light')
+    } else {
+      document.body.classList.remove('theme-light')
+    }
+  }, [])
 
   // If onboarding is not complete, redirect to /onboarding
   if (!onboardingComplete && location.pathname !== '/onboarding') {
