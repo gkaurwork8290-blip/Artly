@@ -1,5 +1,5 @@
 import { useState, useRef, type ChangeEvent } from 'react'
-import { Image, PenLine, X, Plus, Camera, BookOpen, ChevronDown, ChevronUp } from 'lucide-react'
+import { Image, PenLine, X, Plus, Camera, BookOpen } from 'lucide-react'
 
 type InputMethod = 'upload' | 'camera' | 'describe' | 'quickscan' | null
 type InputData = {
@@ -24,19 +24,6 @@ type Idea = {
   steps: string[]
 }
 
-type KitItem = {
-  item: string
-  reason: string
-  estimatedPrice: string
-  localAlternative?: string
-}
-
-type ShoppingKit = {
-  essentials: KitItem[]
-  niceToHave: KitItem[]
-  totalEstimatedCost: string
-  complementaryPairs: { color1: string; color2: string; useCase: string }[]
-}
 
 export default function Create() {
   const [selectedMethod, setSelectedMethod] = useState<InputMethod>(null)
@@ -52,10 +39,6 @@ export default function Create() {
   const [expandedIdea, setExpandedIdea] = useState<number | null>(null)
   const [selectedIdea, setSelectedIdea] = useState<Idea | null>(null)
   const [colourMatches, setColourMatches] = useState<any[]>([])
-  const [kit, setKit] = useState<ShoppingKit | null>(null)
-  const [selectedCountry] = useState<string>('')
-  const [materialInsights, setMaterialInsights] = useState<any[]>([])
-  const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set())
   const [loadingInsights, setLoadingInsights] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -260,40 +243,7 @@ export default function Create() {
     }
   }
 
-  const generateKit = async (country?: string) => {
-    setCurrentScreen('kit')
-    setError(null)
-    setKit(null)
-
-    try {
-      const response = await fetch('/api/generate-kit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          materials: detectedMaterials.map(m => m.name),
-          country: country || undefined,
-          ideaTitle: selectedIdea?.title || undefined
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || 'API request failed')
-      }
-
-      const data = await response.json()
-      const kit: any = data || null
-
-      setKit(kit)
-    } catch (error: unknown) {
-      console.error('Kit generation failed:', error)
-      setError(error instanceof Error ? error.message : 'Kit generation failed')
-      setCurrentScreen('error')
-    }
-  }
-
+  
   const generatePalette = async () => {
     console.log('🎨 generatePalette called')
     console.log('📝 selectedIdea:', selectedIdea)
@@ -371,7 +321,7 @@ export default function Create() {
       }
 
       const insights = await response.json()
-      setMaterialInsights(insights)
+      console.log('Material insights loaded:', insights)
     } catch (error) {
       console.error('Error loading material insights:', error)
     } finally {
@@ -379,16 +329,7 @@ export default function Create() {
     }
   }
 
-  const toggleCard = (index: number) => {
-    const newExpanded = new Set(expandedCards)
-    if (newExpanded.has(index)) {
-      newExpanded.delete(index)
-    } else {
-      newExpanded.add(index)
-    }
-    setExpandedCards(newExpanded)
-  }
-
+  
   const filterColourMaterials = (materials: Material[]): string[] => {
   const colourMaterials = [
     'paint', 'watercolor', 'watercolour', 'acrylic', 'pastel', 'chalk', 
