@@ -10,9 +10,11 @@ interface OnboardingProps {
 export default function Onboarding({ setOnboardingComplete }: OnboardingProps) {
   const [currentStep, setCurrentStep] = useState(0)
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null)
-  const [selectedMedium, setSelectedMedium] = useState<string | null>(null)
+  const [selectedMedium, setSelectedMedium] = useState<string[]>([])
   const [selectedTheme, setSelectedTheme] = useState<string | null>(null)
   const [showGuestInfo, setShowGuestInfo] = useState(true)
+  const [showCustomMediumInput, setShowCustomMediumInput] = useState(false)
+  const [customMedium, setCustomMedium] = useState('')
   const navigate = useNavigate()
   const { user } = useAuth()
 
@@ -29,7 +31,8 @@ export default function Onboarding({ setOnboardingComplete }: OnboardingProps) {
     "Air dry clay",
     "Watercolours",
     "Acrylics",
-    "Mixed media"
+    "Mixed media",
+    "Other / Add your own"
   ]
 
   const handleNext = () => {
@@ -41,8 +44,8 @@ export default function Onboarding({ setOnboardingComplete }: OnboardingProps) {
       }
     } else if (currentStep === 1) {
       // Medium step
-      if (selectedMedium) {
-        localStorage.setItem('artly_medium', selectedMedium)
+      if (selectedMedium.length > 0) {
+        localStorage.setItem('artly_medium', selectedMedium.join(', '))
         if (isGuest) {
           // Guest path - complete onboarding
           localStorage.setItem('artly_onboarding_complete', 'true')
@@ -179,6 +182,26 @@ export default function Onboarding({ setOnboardingComplete }: OnboardingProps) {
 
     if (currentStep === 1) {
       // Medium step
+      const handleMediumToggle = (option: string) => {
+        if (option === "Other / Add your own") {
+          setShowCustomMediumInput(!showCustomMediumInput)
+        } else {
+          setSelectedMedium(prev => 
+            prev.includes(option) 
+              ? prev.filter(item => item !== option)
+              : [...prev, option]
+          )
+        }
+      }
+
+      const handleCustomMediumSubmit = () => {
+        if (customMedium.trim()) {
+          setSelectedMedium(prev => [...prev, customMedium.trim()])
+          setCustomMedium('')
+          setShowCustomMediumInput(false)
+        }
+      }
+
       return (
         <div className="w-full max-w-md mx-auto">
           {/* Icon */}
@@ -198,40 +221,89 @@ export default function Onboarding({ setOnboardingComplete }: OnboardingProps) {
 
           {/* Options */}
           <div className="space-y-3 mb-6">
-            {mediumOptions.map((option) => (
+            {mediumOptions.slice(0, 4).map((option) => (
               <div
                 key={option}
-                onClick={() => setSelectedMedium(option)}
+                onClick={() => handleMediumToggle(option)}
                 className={`w-full min-h-[48px] p-3 rounded-lg cursor-pointer transition-all duration-200 ${
-                  selectedMedium === option
+                  selectedMedium.includes(option)
                     ? 'border-[var(--color-primary)]'
                     : 'border-[var(--color-border)]'
                 }`}
                 style={{
-                  backgroundColor: selectedMedium === option 
+                  backgroundColor: selectedMedium.includes(option) 
                     ? 'var(--color-primary)' 
                     : 'var(--color-surface)',
-                  opacity: selectedMedium === option ? 0.1 : 1,
+                  opacity: selectedMedium.includes(option) ? 0.1 : 1,
                   border: '1px solid var(--color-border)'
                 }}
               >
                 <span className="text-sm" style={{ 
-                  color: selectedMedium === option ? 'var(--color-primary)' : 'var(--color-text)' 
+                  color: selectedMedium.includes(option) ? 'var(--color-primary)' : 'var(--color-text)' 
                 }}>
                   {option}
                 </span>
               </div>
             ))}
+            
+            {/* Other / Add your own option */}
+            <div
+              onClick={() => handleMediumToggle("Other / Add your own")}
+              className={`w-full min-h-[48px] p-3 rounded-lg cursor-pointer transition-all duration-200 ${
+                showCustomMediumInput
+                  ? 'border-[var(--color-primary)]'
+                  : 'border-[var(--color-border)]'
+              }`}
+              style={{
+                backgroundColor: showCustomMediumInput 
+                  ? 'var(--color-primary)' 
+                  : 'var(--color-surface)',
+                opacity: showCustomMediumInput ? 0.1 : 1,
+                border: '1px solid var(--color-border)'
+              }}
+            >
+              <span className="text-sm" style={{ 
+                color: showCustomMediumInput ? 'var(--color-primary)' : 'var(--color-text)' 
+              }}>
+                Other / Add your own
+              </span>
+            </div>
+
+            {/* Custom input field */}
+            {showCustomMediumInput && (
+              <div className="mt-3 flex gap-2">
+                <input
+                  type="text"
+                  value={customMedium}
+                  onChange={(e) => setCustomMedium(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleCustomMediumSubmit()}
+                  placeholder="Enter your medium..."
+                  className="flex-1 px-3 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] placeholder-[var(--color-text-3)] focus:outline-none focus:border-[var(--color-primary)]"
+                  style={{ fontSize: '14px' }}
+                />
+                <button
+                  onClick={handleCustomMediumSubmit}
+                  disabled={!customMedium.trim()}
+                  className="px-4 py-2 rounded-lg text-white font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ 
+                    backgroundColor: customMedium.trim() ? 'var(--color-primary)' : 'var(--color-surface)',
+                    color: customMedium.trim() ? 'white' : 'var(--color-text-3)'
+                  }}
+                >
+                  Add
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Next button */}
           <button
             onClick={handleNext}
-            disabled={!selectedMedium}
+            disabled={selectedMedium.length === 0}
             className="w-full h-12 rounded-xl font-semibold text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ 
-              backgroundColor: selectedMedium ? 'var(--color-primary)' : 'var(--color-surface)',
-              color: selectedMedium ? 'white' : 'var(--color-text-3)'
+              backgroundColor: selectedMedium.length > 0 ? 'var(--color-primary)' : 'var(--color-surface)',
+              color: selectedMedium.length > 0 ? 'white' : 'var(--color-text-3)'
             }}
           >
             {isGuest ? 'Start creating' : 'Next'}

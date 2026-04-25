@@ -1,5 +1,5 @@
 import { useState, useRef, type ChangeEvent } from 'react'
-import { Image, PenLine, X, Plus, Camera, BookOpen } from 'lucide-react'
+import { Image, PenLine, X, Plus, Camera } from 'lucide-react'
 
 type InputMethod = 'upload' | 'camera' | 'describe' | 'quickscan' | null
 type InputData = {
@@ -39,7 +39,6 @@ export default function Create() {
   const [expandedIdea, setExpandedIdea] = useState<number | null>(null)
   const [selectedIdea, setSelectedIdea] = useState<Idea | null>(null)
   const [colourMatches, setColourMatches] = useState<any[]>([])
-  const [loadingInsights, setLoadingInsights] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -301,31 +300,6 @@ export default function Create() {
       console.error('💥 Palette generation failed:', error)
       setError(error instanceof Error ? error.message : 'Palette generation failed')
       setCurrentScreen('error')
-    }
-  }
-
-  const loadMaterialInsights = async () => {
-    setLoadingInsights(true)
-    try {
-      const materials = detectedMaterials.map(m => m.name)
-      const response = await fetch('/api/material-insights', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ materials }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to load material insights')
-      }
-
-      const insights = await response.json()
-      console.log('Material insights loaded:', insights)
-    } catch (error) {
-      console.error('Error loading material insights:', error)
-    } finally {
-      setLoadingInsights(false)
     }
   }
 
@@ -929,18 +903,7 @@ export default function Create() {
               >
                 Mixing Guide
               </button>
-              {detectedMaterials.length > 0 && (
-                <button
-                  onClick={loadMaterialInsights}
-                  disabled={loadingInsights}
-                  className="px-6 py-3 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all flex items-center gap-2 disabled:opacity-50"
-                  style={{minWidth: '0', minHeight: '44px'}}
-                >
-                  <BookOpen className="w-4 h-4" />
-                  {loadingInsights ? 'Analysing your materials...' : 'Material Insights'}
-                </button>
-              )}
-              <button
+                            <button
                 onClick={tryAgain}
                 className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
                 style={{minWidth: '0', minHeight: '44px'}}
