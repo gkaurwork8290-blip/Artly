@@ -43,13 +43,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const data = JSON.parse(responseText);
     const rawText = data.content?.[0]?.text || '[]';
-    const cleaned = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const cleaned = rawText
+      .trim()
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/\s*```$/i, '')
+      .trim();
     
     try {
       const ideas = JSON.parse(cleaned);
       return res.status(200).json({ ideas });
     } catch (parseError) {
-      return res.status(500).json({ error: 'Failed to parse', rawResponse: cleaned });
+      return res.status(500).json({ error: 'Failed to parse AI response', raw: cleaned.slice(0, 200) });
     }
   } catch (error) {
     console.error('Internal server error:', error);
