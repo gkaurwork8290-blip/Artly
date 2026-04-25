@@ -1,11 +1,9 @@
 import { useAuth } from '../contexts/AuthContext'
-import { useNavigate } from 'react-router-dom'
 import { Check } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
 export default function Profile() {
   const { user, signOut, signInWithGoogle } = useAuth()
-  const navigate = useNavigate()
   const [currentTheme, setCurrentTheme] = useState<string>('dark')
 
   useEffect(() => {
@@ -111,31 +109,43 @@ export default function Profile() {
           </button>
         </>
       ) : (
-        <>
-          <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary via-secondary to-tertiary bg-clip-text text-transparent">
-            👤 Profile
-          </h1>
-          
-          <p className="text-text-secondary mb-8">
-            Sign in to view your profile and saved projects
+        <div className="flex flex-col items-center justify-center" style={{ minHeight: '60vh', gap: '16px', padding: '24px' }}>
+          {/* Avatar */}
+          <div 
+            className="w-16 h-16 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: 'var(--color-surface)' }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-text-3)' }}>
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+
+          {/* Title */}
+          <h2 className="text-xl font-bold text-center" style={{ color: 'var(--color-text)' }}>
+            Profile
+          </h2>
+
+          {/* Subtitle */}
+          <p className="text-sm text-center" style={{ color: 'var(--color-text-2)' }}>
+            Sign in to save your work across devices
           </p>
 
-          <div className="flex flex-col gap-4">
-            <button
-              onClick={signInWithGoogle}
-              className="px-8 py-3 bg-gradient-to-r from-primary to-secondary text-white font-semibold rounded-full hover:shadow-lg hover:shadow-primary/25 transition-all"
-            >
-              Sign in with Google
-            </button>
-            
-            <button
-              onClick={() => navigate('/')}
-              className="px-8 py-3 text-text-primary hover:text-white font-medium transition-colors duration-200"
-            >
-              Continue as Guest
-            </button>
-          </div>
-        </>
+          {/* Sign in button */}
+          <button
+            onClick={signInWithGoogle}
+            className="w-full font-semibold transition-all duration-200"
+            style={{ 
+              maxWidth: '320px',
+              height: '48px',
+              borderRadius: '12px',
+              backgroundColor: 'var(--color-primary)',
+              color: 'white'
+            }}
+          >
+            Sign in with Google
+          </button>
+        </div>
       )}
     </div>
   )

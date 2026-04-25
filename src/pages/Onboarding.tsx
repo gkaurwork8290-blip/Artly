@@ -142,22 +142,18 @@ export default function Onboarding({ setOnboardingComplete }: OnboardingProps) {
               <div
                 key={option}
                 onClick={() => setSelectedSkill(option)}
-                className={`w-full min-h-[48px] p-3 rounded-lg cursor-pointer transition-all duration-200 ${
-                  selectedSkill === option
-                    ? 'border-[var(--color-primary)]'
-                    : 'border-[var(--color-border)]'
-                }`}
+                className="w-full min-h-[48px] p-3 rounded-lg cursor-pointer transition-all duration-200"
                 style={{
+                  border: selectedSkill === option 
+                    ? '2px solid var(--color-primary)' 
+                    : '1px solid var(--color-border)',
                   backgroundColor: selectedSkill === option 
-                    ? 'var(--color-primary)' 
+                    ? 'rgba(108, 60, 225, 0.15)' 
                     : 'var(--color-surface)',
-                  opacity: selectedSkill === option ? 0.1 : 1,
-                  border: '1px solid var(--color-border)'
+                  color: selectedSkill === option ? 'var(--color-text)' : 'var(--color-text)'
                 }}
               >
-                <span className="text-sm" style={{ 
-                  color: selectedSkill === option ? 'var(--color-primary)' : 'var(--color-text)' 
-                }}>
+                <span className="text-sm">
                   {option}
                 </span>
               </div>
@@ -225,22 +221,18 @@ export default function Onboarding({ setOnboardingComplete }: OnboardingProps) {
               <div
                 key={option}
                 onClick={() => handleMediumToggle(option)}
-                className={`w-full min-h-[48px] p-3 rounded-lg cursor-pointer transition-all duration-200 ${
-                  selectedMedium.includes(option)
-                    ? 'border-[var(--color-primary)]'
-                    : 'border-[var(--color-border)]'
-                }`}
+                className="w-full min-h-[48px] p-3 rounded-lg cursor-pointer transition-all duration-200"
                 style={{
+                  border: selectedMedium.includes(option) 
+                    ? '2px solid var(--color-primary)' 
+                    : '1px solid var(--color-border)',
                   backgroundColor: selectedMedium.includes(option) 
-                    ? 'var(--color-primary)' 
+                    ? 'rgba(108, 60, 225, 0.15)' 
                     : 'var(--color-surface)',
-                  opacity: selectedMedium.includes(option) ? 0.1 : 1,
-                  border: '1px solid var(--color-border)'
+                  color: selectedMedium.includes(option) ? 'var(--color-text)' : 'var(--color-text)'
                 }}
               >
-                <span className="text-sm" style={{ 
-                  color: selectedMedium.includes(option) ? 'var(--color-primary)' : 'var(--color-text)' 
-                }}>
+                <span className="text-sm">
                   {option}
                 </span>
               </div>
@@ -249,49 +241,54 @@ export default function Onboarding({ setOnboardingComplete }: OnboardingProps) {
             {/* Other / Add your own option */}
             <div
               onClick={() => handleMediumToggle("Other / Add your own")}
-              className={`w-full min-h-[48px] p-3 rounded-lg cursor-pointer transition-all duration-200 ${
-                showCustomMediumInput
-                  ? 'border-[var(--color-primary)]'
-                  : 'border-[var(--color-border)]'
-              }`}
+              className="w-full min-h-[48px] p-3 rounded-lg cursor-pointer transition-all duration-200"
               style={{
-                backgroundColor: showCustomMediumInput 
-                  ? 'var(--color-primary)' 
+                border: showCustomMediumInput
+                  ? '2px solid var(--color-primary)' 
+                  : '1px solid var(--color-border)',
+                backgroundColor: showCustomMediumInput
+                  ? 'rgba(108, 60, 225, 0.15)' 
                   : 'var(--color-surface)',
-                opacity: showCustomMediumInput ? 0.1 : 1,
-                border: '1px solid var(--color-border)'
+                color: showCustomMediumInput ? 'var(--color-text)' : 'var(--color-text)'
               }}
             >
-              <span className="text-sm" style={{ 
-                color: showCustomMediumInput ? 'var(--color-primary)' : 'var(--color-text)' 
-              }}>
+              <span className="text-sm">
                 Other / Add your own
               </span>
             </div>
 
             {/* Custom input field */}
             {showCustomMediumInput && (
-              <div className="mt-3 flex gap-2">
+              <div className="mt-3">
                 <input
                   type="text"
                   value={customMedium}
-                  onChange={(e) => setCustomMedium(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleCustomMediumSubmit()}
-                  placeholder="Enter your medium..."
-                  className="flex-1 px-3 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] placeholder-[var(--color-text-3)] focus:outline-none focus:border-[var(--color-primary)]"
-                  style={{ fontSize: '14px' }}
-                />
-                <button
-                  onClick={handleCustomMediumSubmit}
-                  disabled={!customMedium.trim()}
-                  className="px-4 py-2 rounded-lg text-white font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ 
-                    backgroundColor: customMedium.trim() ? 'var(--color-primary)' : 'var(--color-surface)',
-                    color: customMedium.trim() ? 'white' : 'var(--color-text-3)'
+                  onChange={(e) => {
+                    setCustomMedium(e.target.value)
+                    if (e.target.value.trim().length >= 2) {
+                      setSelectedMedium(prev => {
+                        if (!prev.includes(customMedium.trim()) && customMedium.trim()) {
+                          return [...prev, customMedium.trim()]
+                        }
+                        return prev
+                      })
+                    }
                   }}
-                >
-                  Add
-                </button>
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && customMedium.trim().length >= 2) {
+                      handleCustomMediumSubmit()
+                    }
+                  }}
+                  placeholder="Type your medium..."
+                  className="w-full px-3 py-2.5 rounded-lg"
+                  style={{
+                    backgroundColor: 'var(--color-surface)',
+                    border: '1px solid var(--color-primary)',
+                    color: 'var(--color-text)',
+                    fontSize: '14px'
+                  }}
+                  autoFocus
+                />
               </div>
             )}
           </div>
