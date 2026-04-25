@@ -14,7 +14,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!apiKey) return res.status(500).json({ error: 'API key not configured' });
   if (!materials || !Array.isArray(materials)) return res.status(400).json({ error: 'Materials array required' });
 
-  const userPrompt = `For each of these art materials: ${materials.join(', ')}, provide practical insights. Return ONLY a raw JSON array with no markdown: [{ "material": string, "tips": string[], "careInstructions": string[], "commonMistakes": string[], "shelfLife": string }]`;
+  const userPrompt = `For each of these art materials: ${materials.join(', ')}, provide practical insights. Return ONLY a raw JSON array with no markdown: [{ "material": string, "tips": string[], "care": string[], "mistakes": string[], "shelfLife": string }]`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -27,7 +27,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       body: JSON.stringify({
         model: 'claude-haiku-4-5',
         max_tokens: 1024,
-        system: 'You are an expert art materials advisor. Return ONLY valid JSON, no markdown, no backticks, no explanation.',
+        system: 'You are an expert art materials advisor. Always respond with ONLY valid JSON, no markdown, no explanation.',
         messages: [{ role: 'user', content: userPrompt }]
       })
     });

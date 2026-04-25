@@ -1,9 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  console.log('All env keys:', Object.keys(process.env).filter(k => k.includes('ANTHROPIC') || k.includes('API')));
-  console.log('API Key length:', process.env.ANTHROPIC_API_KEY?.length || 0);
-  
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -49,7 +46,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const data = JSON.parse(responseText);
     const rawText = data.content?.[0]?.text || '[]';
     const cleaned = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    console.log('Cleaned response text:', cleaned);
     
     try {
       const materials = JSON.parse(cleaned);

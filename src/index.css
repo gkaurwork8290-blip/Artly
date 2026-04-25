@@ -5,15 +5,45 @@
 @tailwind utilities;
 
 :root {
-  --primary: #6C3CE1;
-  --secondary: #FF3D71;
-  --tertiary: #00D4FF;
-  --success: #00E096;
-  --background: #0F0F1A;
-  --surface: #1A1A2E;
-  --surface2: #242440;
-  --text-primary: #FFFFFF;
-  --text-secondary: #A0A0C0;
+  --color-primary: #6C3CE1;
+  --color-primary-hover: #5a32c4;
+  --color-accent: #FF3D71;
+  --color-success: #1D9E75;
+  --color-warning: #EF9F27;
+  --color-bg: #0F0F1A;
+  --color-surface: #1A1A2E;
+  --color-surface-2: #0a0a14;
+  --color-text: #FFFFFF;
+  --color-text-2: #A0A0C0;
+  --color-text-3: #5a5a7a;
+  --color-border: rgba(255,255,255,0.08);
+  --color-border-2: rgba(108,60,225,0.25);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 99px;
+  --fs-display: clamp(18px, 4vw, 28px);
+  --fs-h1: clamp(15px, 3vw, 22px);
+  --fs-h2: clamp(13px, 2.5vw, 18px);
+  --fs-body: clamp(11px, 2vw, 14px);
+  --fs-caption: clamp(10px, 1.8vw, 12px);
+  --fs-micro: clamp(9px, 1.5vw, 11px);
+}
+
+.theme-light {
+  --color-primary: #B05E3A;
+  --color-primary-hover: #8a4a2a;
+  --color-accent: #C94070;
+  --color-success: #4A7A50;
+  --color-warning: #B07820;
+  --color-bg: #F7F1E8;
+  --color-surface: #EDE5D8;
+  --color-surface-2: #E4D9C8;
+  --color-text: #1C1209;
+  --color-text-2: #6A5240;
+  --color-text-3: #9A8070;
+  --color-border: rgba(0,0,0,0.08);
+  --color-border-2: rgba(176,94,58,0.2);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
