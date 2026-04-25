@@ -447,16 +447,18 @@ export default function Create() {
                   alt="Uploaded" 
                   className="w-full max-w-md mx-auto rounded-lg mb-6"
                 />
-                <div className="flex gap-4 justify-center">
+                <div className="flex gap-4 justify-center" style={{flexWrap: 'wrap', gap: '8px'}}>
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
+                    style={{minWidth: '0', minHeight: '44px'}}
                   >
                     Re-upload
                   </button>
                   <button
                     onClick={handleDetectMaterials}
                     className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
+                    style={{minWidth: '0', minHeight: '44px'}}
                   >
                     Detect Materials
                   </button>
@@ -480,16 +482,18 @@ export default function Create() {
                   playsInline
                   className="w-full max-w-md mx-auto rounded-lg mb-6"
                 />
-                <div className="flex gap-4 justify-center">
+                <div className="flex gap-4 justify-center" style={{flexWrap: 'wrap', gap: '8px'}}>
                   <button
                     onClick={stopCamera}
                     className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
+                    style={{minWidth: '0', minHeight: '44px'}}
                   >
                     Cancel
                   </button>
                   <button
                     onClick={takePhoto}
                     className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
+                    style={{minWidth: '0', minHeight: '44px'}}
                   >
                     Capture
                   </button>
@@ -505,16 +509,18 @@ export default function Create() {
                   alt="Captured" 
                   className="w-full max-w-md mx-auto rounded-lg mb-6"
                 />
-                <div className="flex gap-4 justify-center">
+                <div className="flex gap-4 justify-center" style={{flexWrap: 'wrap', gap: '8px'}}>
                   <button
                     onClick={handleRetake}
                     className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
+                    style={{minWidth: '0', minHeight: '44px'}}
                   >
                     Retake
                   </button>
                   <button
                     onClick={handleDetectMaterials}
                     className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
+                    style={{minWidth: '0', minHeight: '44px'}}
                   >
                     Detect Materials
                   </button>
@@ -531,10 +537,11 @@ export default function Create() {
                   placeholder="e.g. I have crimson acrylic paint, a flat brush, air dry clay and some canvas board..."
                   className="w-full h-32 p-4 bg-background border border-surface2 rounded-lg text-text-primary placeholder-text-secondary resize-none focus:outline-none focus:border-primary mb-6"
                 />
-                <div className="flex gap-4 justify-center">
+                <div className="flex gap-4 justify-center" style={{flexWrap: 'wrap', gap: '8px'}}>
                   <button
                     onClick={backToSelection}
                     className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
+                    style={{minWidth: '0', minHeight: '44px'}}
                   >
                     Back
                   </button>
@@ -542,6 +549,7 @@ export default function Create() {
                     onClick={handleDetectMaterials}
                     disabled={!inputData.description?.trim()}
                     className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{minWidth: '0', minHeight: '44px'}}
                   >
                     Detect Materials
                   </button>
@@ -579,16 +587,18 @@ export default function Create() {
                   alt="Quick Scan" 
                   className="w-full max-w-md mx-auto rounded-lg mb-6"
                 />
-                <div className="flex gap-4 justify-center">
+                <div className="flex gap-4 justify-center" style={{flexWrap: 'wrap', gap: '8px'}}>
                   <button
                     onClick={handleQuickScan}
                     className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
+                    style={{minWidth: '0', minHeight: '44px'}}
                   >
                     Scan Again
                   </button>
                   <button
                     onClick={handleDetectMaterials}
                     className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
+                    style={{minWidth: '0', minHeight: '44px'}}
                   >
                     Detect Materials
                   </button>
@@ -650,16 +660,18 @@ export default function Create() {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-4 justify-center">
+            <div className="flex gap-4 justify-center" style={{flexWrap: 'wrap', gap: '8px'}}>
               <button
                 onClick={tryAgain}
                 className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
+                style={{minWidth: '0', minHeight: '44px'}}
               >
                 Try again
               </button>
               <button
                 onClick={confirmMaterials}
                 className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
+                style={{minWidth: '0', minHeight: '44px'}}
               >
                 Looks good!
               </button>
@@ -669,12 +681,12 @@ export default function Create() {
 
         {/* Ideas Screen */}
         {currentScreen === 'ideas' && (
-          <div className="bg-surface border border-surface2 rounded-2xl p-6">
+          <div className="bg-surface border border-surface2 rounded-2xl p-6" style={{maxWidth: '100%', padding: '0 16px'}}>
             <div className="flex justify-between items-center mb-6">
-                <h3 className="font-semibold text-text-primary" style={{fontSize: 'var(--fs-display)'}}>Creative Ideas for You</h3>
+                <h3 className="font-semibold text-text-primary" style={{fontSize: 'var(--fs-h1)'}}>Creative Ideas for You</h3>
               <div className="flex gap-3">
                 {!showThemeInput ? (
-                  <div className="flex gap-2">
+                  <div className="flex gap-2" style={{flexWrap: 'wrap', gap: '8px'}}>
                     <input
                       type="text"
                       value={themeInput}
@@ -708,7 +720,7 @@ export default function Create() {
             ) : (
               <div className="space-y-4">
                 {ideas.map((idea, index) => (
-                  <div key={index} className="bg-surface border border-surface2 rounded-xl p-6">
+                  <div key={index} className="bg-surface border border-surface2 rounded-xl p-6" style={{width: '100%'}}>
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex-1">
                         <h4 className="font-semibold text-white" style={{fontSize: 'var(--fs-h2)'}}>{idea.title}</h4>
@@ -769,10 +781,11 @@ export default function Create() {
               </div>
             )}
 
-            <div className="flex gap-4 justify-center mt-8">
+            <div className="flex gap-4 justify-center mt-8" style={{flexWrap: 'wrap', gap: '8px'}}>
               <button
                 onClick={tryAgain}
                 className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
+                style={{minWidth: '0', minHeight: '44px'}}
               >
                 Start over
               </button>
@@ -908,10 +921,11 @@ export default function Create() {
               </div>
             )}
 
-            <div className="flex gap-4 justify-center mt-8">
+            <div className="flex gap-4 justify-center mt-8" style={{flexWrap: 'wrap', gap: '8px'}}>
               <button
                 onClick={() => generatePalette()}
                 className="px-6 py-3 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all"
+                style={{minWidth: '0', minHeight: '44px'}}
               >
                 Mixing Guide
               </button>
@@ -920,6 +934,7 @@ export default function Create() {
                   onClick={loadMaterialInsights}
                   disabled={loadingInsights}
                   className="px-6 py-3 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all flex items-center gap-2 disabled:opacity-50"
+                  style={{minWidth: '0', minHeight: '44px'}}
                 >
                   <BookOpen className="w-4 h-4" />
                   {loadingInsights ? 'Analysing your materials...' : 'Material Insights'}
@@ -928,6 +943,7 @@ export default function Create() {
               <button
                 onClick={tryAgain}
                 className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
+                style={{minWidth: '0', minHeight: '44px'}}
               >
                 Start over
               </button>
@@ -949,11 +965,12 @@ export default function Create() {
                 : error
               }
             </p>
-            <div className="flex gap-4 justify-center">
+            <div className="flex gap-4 justify-center" style={{flexWrap: 'wrap', gap: '8px'}}>
               {error === 'No materials detected' ? (
                 <button
                   onClick={tryAgain}
                   className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
+                  style={{minWidth: '0', minHeight: '44px'}}
                 >
                   Try again
                 </button>
@@ -962,12 +979,14 @@ export default function Create() {
                   <button
                     onClick={backToSelection}
                     className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
+                    style={{minWidth: '0', minHeight: '44px'}}
                   >
                     Back to selection
                   </button>
                   <button
                     onClick={tryAgain}
                     className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
+                    style={{minWidth: '0', minHeight: '44px'}}
                   >
                     Try again
                   </button>
