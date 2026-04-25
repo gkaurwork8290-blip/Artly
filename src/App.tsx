@@ -8,6 +8,7 @@ import Journal from './pages/Journal'
 import Profile from './pages/Profile'
 import Onboarding from './pages/Onboarding'
 import BottomNav from './components/BottomNav'
+import SideNav from './components/SideNav'
 import { AuthProvider } from './contexts/AuthContext'
 
 function AppContent() {
@@ -31,19 +32,22 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/home" element={<Home />} />
-        <Route 
-          path="/onboarding" 
-          element={<Onboarding setOnboardingComplete={setOnboardingComplete} />} 
-        />
-        <Route path="/create" element={<Create />} />
-        <Route path="/history" element={<History />} />
-        <Route path="/journal" element={<Journal />} />
-        <Route path="/profile" element={<Profile />} />
-      </Routes>
-      {showBottomNav && <BottomNav />}
+      <SideNav />
+      <div className="main-content">
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/home" element={<Home />} />
+          <Route 
+            path="/onboarding" 
+            element={<Onboarding setOnboardingComplete={setOnboardingComplete} />} 
+          />
+          <Route path="/create" element={<Create />} />
+          <Route path="/history" element={<History />} />
+          <Route path="/journal" element={<Journal />} />
+          <Route path="/profile" element={<Profile />} />
+        </Routes>
+        {showBottomNav && <BottomNav />}
+      </div>
     </div>
   )
 }

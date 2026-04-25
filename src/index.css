@@ -22,11 +22,11 @@
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-pill: 99px;
-  --fs-display: clamp(18px, 4vw, 28px);
-  --fs-h1: clamp(15px, 3vw, 22px);
+  --fs-display: clamp(20px, 4vw, 32px);
+  --fs-h1: clamp(16px, 3vw, 24px);
   --fs-h2: clamp(13px, 2.5vw, 18px);
-  --fs-body: clamp(11px, 2vw, 14px);
-  --fs-caption: clamp(10px, 1.8vw, 12px);
+  --fs-body: clamp(12px, 2vw, 15px);
+  --fs-caption: clamp(10px, 1.8vw, 13px);
   --fs-micro: clamp(9px, 1.5vw, 11px);
 }
 
@@ -49,3 +49,13 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { background: #0F0F1A; color: #FFFFFF; font-family: 'Inter', sans-serif; }
 h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; }
+
+.main-content { 
+  margin-left: 0; 
+}
+
+@media (min-width: 768px) { 
+  .main-content { 
+    margin-left: 64px; 
+  } 
+}
