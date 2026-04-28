@@ -1,5 +1,5 @@
 import { useState, useRef, type ChangeEvent } from 'react'
-import { Image, PenLine, X, Plus, Camera } from 'lucide-react'
+import { Image, PenLine, X, Plus, Camera, BookOpen, ChevronDown, ChevronUp } from 'lucide-react'
 
 type InputMethod = 'upload' | 'camera' | 'describe' | 'quickscan' | null
 type InputData = {
@@ -24,6 +24,19 @@ type Idea = {
   steps: string[]
 }
 
+type KitItem = {
+  item: string
+  reason: string
+  estimatedPrice: string
+  localAlternative?: string
+}
+
+type ShoppingKit = {
+  essentials: KitItem[]
+  niceToHave: KitItem[]
+  totalEstimatedCost: string
+  complementaryPairs: { color1: string; color2: string; useCase: string }[]
+}
 
 export default function Create() {
   const [selectedMethod, setSelectedMethod] = useState<InputMethod>(null)
@@ -39,6 +52,11 @@ export default function Create() {
   const [expandedIdea, setExpandedIdea] = useState<number | null>(null)
   const [selectedIdea, setSelectedIdea] = useState<Idea | null>(null)
   const [colourMatches, setColourMatches] = useState<any[]>([])
+  const [kit, setKit] = useState<ShoppingKit | null>(null)
+  const [selectedCountry] = useState<string>('')
+  const [materialInsights, setMaterialInsights] = useState<any[]>([])
+  const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set())
+  const [loadingInsights, setLoadingInsights] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -242,7 +260,40 @@ export default function Create() {
     }
   }
 
-  
+  const generateKit = async (country?: string) => {
+    setCurrentScreen('kit')
+    setError(null)
+    setKit(null)
+
+    try {
+      const response = await fetch('/api/generate-kit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          materials: detectedMaterials.map(m => m.name),
+          country: country || undefined,
+          ideaTitle: selectedIdea?.title || undefined
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'API request failed')
+      }
+
+      const data = await response.json()
+      const kit: any = data || null
+
+      setKit(kit)
+    } catch (error: unknown) {
+      console.error('Kit generation failed:', error)
+      setError(error instanceof Error ? error.message : 'Kit generation failed')
+      setCurrentScreen('error')
+    }
+  }
+
   const generatePalette = async () => {
     console.log('🎨 generatePalette called')
     console.log('📝 selectedIdea:', selectedIdea)
@@ -303,7 +354,41 @@ export default function Create() {
     }
   }
 
-  
+  const loadMaterialInsights = async () => {
+    setLoadingInsights(true)
+    try {
+      const materials = detectedMaterials.map(m => m.name)
+      const response = await fetch('/api/material-insights', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ materials }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to load material insights')
+      }
+
+      const insights = await response.json()
+      setMaterialInsights(insights)
+    } catch (error) {
+      console.error('Error loading material insights:', error)
+    } finally {
+      setLoadingInsights(false)
+    }
+  }
+
+  const toggleCard = (index: number) => {
+    const newExpanded = new Set(expandedCards)
+    if (newExpanded.has(index)) {
+      newExpanded.delete(index)
+    } else {
+      newExpanded.add(index)
+    }
+    setExpandedCards(newExpanded)
+  }
+
   const filterColourMaterials = (materials: Material[]): string[] => {
   const colourMaterials = [
     'paint', 'watercolor', 'watercolour', 'acrylic', 'pastel', 'chalk', 
@@ -341,10 +426,10 @@ export default function Create() {
       <div className="px-6 py-12 max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="font-bold mb-4 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent" style={{fontSize: 'var(--fs-display)'}}>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
             What do you have?
           </h1>
-          <p className="text-text-secondary" style={{fontSize: 'var(--fs-body)'}}>
+          <p className="text-xl text-text-secondary">
             Show us your materials and we'll spark your creativity
           </p>
         </div>
@@ -362,8 +447,8 @@ export default function Create() {
                 >
                   <div className="text-center">
                     <Image size={40} className="mx-auto mb-4 text-text-primary group-hover:scale-110 transition-transform" />
-                    <h3 className="font-semibold text-text-primary mb-2" style={{fontSize: 'var(--fs-h2)'}}>Upload Photo</h3>
-                    <p className="text-text-secondary" style={{fontSize: 'var(--fs-body)'}}>Choose an image from your device</p>
+                    <h3 className="text-xl font-semibold text-text-primary mb-2">Upload Photo</h3>
+                    <p className="text-text-secondary">Choose an image from your device</p>
                   </div>
                   <input
                     ref={fileInputRef}
@@ -381,8 +466,8 @@ export default function Create() {
                 >
                   <div className="text-center">
                     <Camera size={40} className="mx-auto mb-4 text-text-primary group-hover:scale-110 transition-transform" />
-                    <h3 className="font-semibold text-text-primary mb-2" style={{fontSize: 'var(--fs-h2)'}}>Use Camera</h3>
-                    <p className="text-text-secondary" style={{fontSize: 'var(--fs-body)'}}>Take a photo with your device</p>
+                    <h3 className="text-xl font-semibold text-text-primary mb-2">Use Camera</h3>
+                    <p className="text-text-secondary">Take a photo with your device</p>
                   </div>
                 </div>
 
@@ -393,8 +478,8 @@ export default function Create() {
                 >
                   <div className="text-center">
                     <PenLine size={40} className="mx-auto mb-4 text-text-primary group-hover:scale-110 transition-transform" />
-                    <h3 className="font-semibold text-text-primary mb-2" style={{fontSize: 'var(--fs-h2)'}}>Describe It</h3>
-                    <p className="text-text-secondary" style={{fontSize: 'var(--fs-body)'}}>Tell us what materials you have</p>
+                    <h3 className="text-xl font-semibold text-text-primary mb-2">Describe It</h3>
+                    <p className="text-text-secondary">Tell us what materials you have</p>
                   </div>
                 </div>
 
@@ -404,9 +489,9 @@ export default function Create() {
                   className="bg-gradient-to-r from-primary to-secondary text-white rounded-2xl p-8 cursor-pointer hover:shadow-lg hover:shadow-primary/25 transform hover:scale-105 transition-all duration-200 md:col-span-2"
                 >
                   <div className="text-center">
-                    <div className="mb-4" style={{fontSize: 'var(--fs-h2)'}}>â¡¡</div>
-                    <h3 className="font-semibold mb-2" style={{fontSize: 'var(--fs-h2)'}}>Quick Scan</h3>
-                    <p className="opacity-90" style={{fontSize: 'var(--fs-body)'}}>Snap your desk â get instant ideas</p>
+                    <div className="text-4xl mb-4">â¡¡</div>
+                    <h3 className="text-xl font-semibold mb-2">Quick Scan</h3>
+                    <p className="opacity-90">Snap your desk â get instant ideas</p>
                   </div>
                 </div>
               </div>
@@ -415,24 +500,22 @@ export default function Create() {
             {/* Selected Method Content */}
             {selectedMethod === 'upload' && inputData.image && (
               <div className="bg-surface border border-surface2 rounded-2xl p-6">
-                <h3 className="font-semibold text-text-primary mb-4" style={{fontSize: 'var(--fs-h1)'}}>Uploaded Image</h3>
+                <h3 className="text-xl font-semibold text-text-primary mb-4">Uploaded Image</h3>
                 <img 
                   src={inputData.image} 
                   alt="Uploaded" 
                   className="w-full max-w-md mx-auto rounded-lg mb-6"
                 />
-                <div className="flex gap-4 justify-center flex-wrap gap-2">
+                <div className="flex gap-4 justify-center">
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
-                    style={{minWidth: '0', minHeight: '44px'}}
                   >
                     Re-upload
                   </button>
                   <button
                     onClick={handleDetectMaterials}
                     className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
-                    style={{minWidth: '0', minHeight: '44px'}}
                   >
                     Detect Materials
                   </button>
@@ -449,25 +532,23 @@ export default function Create() {
 
             {selectedMethod === 'camera' && !inputData.image && (
               <div className="bg-surface border border-surface2 rounded-2xl p-6">
-                <h3 className="font-semibold text-text-primary mb-4" style={{fontSize: 'var(--fs-h1)'}}>Take a Photo</h3>
+                <h3 className="text-xl font-semibold text-text-primary mb-4">Take a Photo</h3>
                 <video
                   ref={videoRef}
                   autoPlay
                   playsInline
                   className="w-full max-w-md mx-auto rounded-lg mb-6"
                 />
-                <div className="flex gap-4 justify-center flex-wrap gap-2">
+                <div className="flex gap-4 justify-center">
                   <button
                     onClick={stopCamera}
                     className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
-                    style={{minWidth: '0', minHeight: '44px'}}
                   >
                     Cancel
                   </button>
                   <button
                     onClick={takePhoto}
                     className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
-                    style={{minWidth: '0', minHeight: '44px'}}
                   >
                     Capture
                   </button>
@@ -477,24 +558,22 @@ export default function Create() {
 
             {selectedMethod === 'camera' && inputData.image && (
               <div className="bg-surface border border-surface2 rounded-2xl p-6">
-                <h3 className="font-semibold text-text-primary mb-4" style={{fontSize: 'var(--fs-h1)'}}>Captured Photo</h3>
+                <h3 className="text-xl font-semibold text-text-primary mb-4">Captured Photo</h3>
                 <img 
                   src={inputData.image} 
                   alt="Captured" 
                   className="w-full max-w-md mx-auto rounded-lg mb-6"
                 />
-                <div className="flex gap-4 justify-center flex-wrap gap-2">
+                <div className="flex gap-4 justify-center">
                   <button
                     onClick={handleRetake}
                     className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
-                    style={{minWidth: '0', minHeight: '44px'}}
                   >
                     Retake
                   </button>
                   <button
                     onClick={handleDetectMaterials}
                     className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
-                    style={{minWidth: '0', minHeight: '44px'}}
                   >
                     Detect Materials
                   </button>
@@ -504,18 +583,17 @@ export default function Create() {
 
             {selectedMethod === 'describe' && (
               <div className="bg-surface border border-surface2 rounded-2xl p-6">
-                <h3 className="font-semibold text-text-primary mb-4" style={{fontSize: 'var(--fs-h1)'}}>Describe Your Materials</h3>
+                <h3 className="text-xl font-semibold text-text-primary mb-4">Describe Your Materials</h3>
                 <textarea
                   value={inputData.description || ''}
                   onChange={(e) => setInputData({ ...inputData, description: e.target.value, method: 'describe' })}
                   placeholder="e.g. I have crimson acrylic paint, a flat brush, air dry clay and some canvas board..."
                   className="w-full h-32 p-4 bg-background border border-surface2 rounded-lg text-text-primary placeholder-text-secondary resize-none focus:outline-none focus:border-primary mb-6"
                 />
-                <div className="flex gap-4 justify-center flex-wrap gap-2">
+                <div className="flex gap-4 justify-center">
                   <button
                     onClick={backToSelection}
                     className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
-                    style={{minWidth: '0', minHeight: '44px'}}
                   >
                     Back
                   </button>
@@ -523,7 +601,6 @@ export default function Create() {
                     onClick={handleDetectMaterials}
                     disabled={!inputData.description?.trim()}
                     className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{minWidth: '0', minHeight: '44px'}}
                   >
                     Detect Materials
                   </button>
@@ -533,7 +610,7 @@ export default function Create() {
 
             {selectedMethod === 'quickscan' && isScanning && (
               <div className="bg-surface border border-surface2 rounded-2xl p-6">
-                <h3 className="font-semibold text-text-primary mb-4" style={{fontSize: 'var(--fs-h1)'}}>Quick Scanning...</h3>
+                <h3 className="text-xl font-semibold text-text-primary mb-4">Quick Scanning...</h3>
                 <div className="relative">
                   <video
                     ref={videoRef}
@@ -555,24 +632,22 @@ export default function Create() {
 
             {selectedMethod === 'quickscan' && inputData.image && !isScanning && (
               <div className="bg-surface border border-surface2 rounded-2xl p-6">
-                <h3 className="text-base font-semibold text-text-primary mb-4">Quick Scan Complete</h3>
+                <h3 className="text-xl font-semibold text-text-primary mb-4">Quick Scan Complete</h3>
                 <img 
                   src={inputData.image} 
                   alt="Quick Scan" 
                   className="w-full max-w-md mx-auto rounded-lg mb-6"
                 />
-                <div className="flex gap-4 justify-center flex-wrap gap-2">
+                <div className="flex gap-4 justify-center">
                   <button
                     onClick={handleQuickScan}
                     className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
-                    style={{minWidth: '0', minHeight: '44px'}}
                   >
                     Scan Again
                   </button>
                   <button
                     onClick={handleDetectMaterials}
                     className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
-                    style={{minWidth: '0', minHeight: '44px'}}
                   >
                     Detect Materials
                   </button>
@@ -586,15 +661,15 @@ export default function Create() {
         {currentScreen === 'detecting' && (
           <div className="bg-surface border border-surface2 rounded-2xl p-12 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-6"></div>
-            <h3 className="font-semibold text-text-primary mb-2" style={{fontSize: 'var(--fs-display)'}}>Analysing your materials...</h3>
-            <p className="text-text-secondary" style={{fontSize: 'var(--fs-body)'}}>This usually takes a few seconds</p>
+            <h3 className="text-2xl font-semibold text-text-primary mb-2">Analysing your materials...</h3>
+            <p className="text-text-secondary">This usually takes a few seconds</p>
           </div>
         )}
 
         {/* Confirmation Screen */}
         {currentScreen === 'confirmation' && (
           <div className="bg-surface border border-surface2 rounded-2xl p-6">
-            <h3 className="font-semibold text-text-primary mb-6" style={{fontSize: 'var(--fs-display)'}}>We found these materials</h3>
+            <h3 className="text-2xl font-semibold text-text-primary mb-6">We found these materials</h3>
             
             {/* Material Chips */}
             <div className="flex flex-wrap gap-3 mb-6">
@@ -603,7 +678,7 @@ export default function Create() {
                   key={index}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary/20 to-secondary/20 border border-primary/30 rounded-full"
                 >
-                  <span className="text-text-primary" style={{fontSize: 'var(--fs-body)'}}>{material.name}</span>
+                  <span className="text-text-primary">{material.name}</span>
                   <button
                     onClick={() => removeMaterial(index)}
                     className="text-text-secondary hover:text-text-primary transition-colors"
@@ -615,7 +690,7 @@ export default function Create() {
             </div>
 
             {/* Add Material Input */}
-            <div className="flex gap-3 mb-8 flex-wrap gap-2">
+            <div className="flex gap-3 mb-8">
               <input
                 type="text"
                 value={manualMaterial}
@@ -634,18 +709,16 @@ export default function Create() {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-4 justify-center flex-wrap gap-2">
+            <div className="flex gap-4 justify-center">
               <button
                 onClick={tryAgain}
                 className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
-                style={{minWidth: '0', minHeight: '44px'}}
               >
                 Try again
               </button>
               <button
                 onClick={confirmMaterials}
                 className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
-                style={{minWidth: '0', minHeight: '44px'}}
               >
                 Looks good!
               </button>
@@ -655,18 +728,18 @@ export default function Create() {
 
         {/* Ideas Screen */}
         {currentScreen === 'ideas' && (
-          <div className="bg-surface border border-surface2 rounded-2xl p-6" style={{maxWidth: '100%', padding: '0 16px'}}>
-            <div className="flex flex-col gap-3 mb-6">
-                <h3 className="font-semibold text-text-primary" style={{fontSize: 'var(--fs-h1)'}}>Creative Ideas for You</h3>
-              <div className="flex gap-2 flex-wrap w-full">
+          <div className="bg-surface border border-surface2 rounded-2xl p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-semibold text-text-primary">Creative Ideas for You</h3>
+              <div className="flex gap-3">
                 {!showThemeInput ? (
-                  <div className="flex gap-2 flex-wrap gap-2" style={{flexWrap: 'wrap', gap: '8px'}}>
+                  <div className="flex gap-2">
                     <input
                       type="text"
                       value={themeInput}
                       onChange={(e) => setThemeInput(e.target.value)}
                       placeholder="e.g. calm, bold, nature..."
-                      className="flex-1 min-w-0 px-4 py-2 bg-background border border-surface2 rounded-lg text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary"
+                      className="flex-1 px-4 py-2 bg-background border border-surface2 rounded-lg text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary"
                     />
                     <button
                       onClick={() => generateIdeas(themeInput)}
@@ -694,11 +767,11 @@ export default function Create() {
             ) : (
               <div className="space-y-4">
                 {ideas.map((idea, index) => (
-                  <div key={index} className="bg-surface border border-surface2 rounded-xl p-6" style={{width: '100%'}}>
-                    <div className="flex justify-between items-start mb-3 flex-wrap gap-2">
+                  <div key={index} className="bg-surface border border-surface2 rounded-xl p-6">
+                    <div className="flex justify-between items-start mb-3">
                       <div className="flex-1">
-                        <h4 className="font-semibold text-white" style={{fontSize: 'var(--fs-h2)'}}>{idea.title}</h4>
-                        <span className={`px-3 py-1 rounded-full font-medium ${
+                        <h4 className="text-lg font-semibold text-white">{idea.title}</h4>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                           idea.difficulty === 'beginner' ? 'bg-green-500 text-white' :
                           idea.difficulty === 'intermediate' ? 'bg-yellow-500 text-white' :
                           'bg-red-500 text-white'
@@ -716,26 +789,27 @@ export default function Create() {
                             e.currentTarget.style.display = 'none'
                           }}
                         />
-                        <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded font-medium" style={{ borderRadius: '8px', padding: '2px 8px', fontSize: 'var(--fs-micro)' }}>
+                        <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs font-medium" style={{ borderRadius: '8px', padding: '2px 8px', fontSize: '11px' }}>
                           Reference
                         </div>
                       </div>
                     </div>
-                    <p className="text-text-secondary mb-3" style={{fontSize: 'var(--fs-body)'}}>{idea.description}</p>
-                    <div className="flex justify-between items-center mb-3 flex-wrap gap-2">
-                      <span className="text-text-secondary" style={{fontSize: 'var(--fs-caption)'}}>{idea.estimatedTime}</span>
+                    <p className="text-text-secondary mb-3">{idea.description}</p>
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="text-sm text-text-secondary">{idea.estimatedTime}</span>
                       <button
                         onClick={() => setExpandedIdea(expandedIdea === index ? null : index)}
-                        className="text-primary hover:text-primary/80 transition-colors" style={{fontSize: 'var(--fs-caption)'}}>
+                        className="text-primary hover:text-primary/80 transition-colors"
+                      >
                         {expandedIdea === index ? 'Hide steps' : 'See steps'}
                       </button>
                     </div>
                     {expandedIdea === index && (
                       <div className="bg-surface2 rounded-lg p-4 mt-3">
-                        <h5 className="font-medium text-text-primary mb-2" style={{fontSize: 'var(--fs-h2)'}}>Steps:</h5>
+                        <h5 className="font-medium text-text-primary mb-2">Steps:</h5>
                         <ol className="list-decimal list-inside space-y-2">
                           {idea.steps.map((step, stepIndex) => (
-                            <li key={stepIndex} className="text-text-secondary" style={{fontSize: 'var(--fs-body)'}}>{step}</li>
+                            <li key={stepIndex} className="text-text-secondary">{step}</li>
                           ))}
                         </ol>
                       </div>
@@ -755,11 +829,10 @@ export default function Create() {
               </div>
             )}
 
-            <div className="flex gap-4 justify-center mt-8 flex-wrap gap-2">
+            <div className="flex gap-4 justify-center mt-8">
               <button
                 onClick={tryAgain}
                 className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
-                style={{minWidth: '0', minHeight: '44px'}}
               >
                 Start over
               </button>
@@ -773,10 +846,10 @@ export default function Create() {
             {/* Confirmation Banner */}
             {selectedIdea && (
               <div className="bg-gradient-to-r from-purple-500/10 to-violet-500/10 border border-purple-500/20 rounded-lg p-4 mb-6">
-                <div className="flex justify-between items-center flex-wrap gap-2">
+                <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                    <p className="text-text-primary" style={{fontSize: 'var(--fs-body)'}}>
+                    <p className="text-text-primary">
                       Creating based on: <span className="font-semibold">{selectedIdea.title}</span>
                     </p>
                   </div>
@@ -785,7 +858,8 @@ export default function Create() {
                       setSelectedIdea(null)
                       setCurrentScreen('ideas')
                     }}
-                    className="text-purple-500 hover:text-purple-600 font-medium transition-colors" style={{fontSize: 'var(--fs-caption)'}}>
+                    className="text-purple-500 hover:text-purple-600 text-sm font-medium transition-colors"
+                  >
                     Change
                   </button>
                 </div>
@@ -793,7 +867,7 @@ export default function Create() {
             )}
 
             <div className="flex justify-between items-center mb-6">
-              <h3 className="font-semibold text-text-primary" style={{fontSize: 'var(--fs-display)'}}>
+              <h3 className="text-2xl font-semibold text-text-primary">
                 {selectedIdea ? `Colour Palette for ${selectedIdea.title}` : 'Your Color Palette'}
               </h3>
             </div>
@@ -801,9 +875,9 @@ export default function Create() {
             {/* Colour Extraction Display */}
             {selectedIdea && (
               <div className="bg-surface2 rounded-xl p-6">
-                <h4 className="font-semibold text-text-primary mb-4" style={{fontSize: 'var(--fs-h2)'}}>Colours from your inspiration</h4>
+                <h4 className="text-lg font-semibold text-text-primary mb-4">Colours from your inspiration</h4>
                 
-                <div className="flex gap-6 items-start flex-wrap gap-2">
+                <div className="flex gap-6 items-start">
                   {/* Reference Image */}
                   <div className="flex-shrink-0">
                     <img 
@@ -820,7 +894,7 @@ export default function Create() {
                       <div className="text-center py-8">
                         {filterColourMaterials(detectedMaterials).length === 0 ? (
                           <>
-                            <div className="text-text-secondary mb-3" style={{fontSize: 'var(--fs-body)'}}>
+                            <div className="text-text-secondary mb-3">
                               No colour materials detected — add paints or pigments to see a palette
                             </div>
                             <button
@@ -833,7 +907,7 @@ export default function Create() {
                         ) : (
                           <>
                             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-3"></div>
-                            <p className="text-text-secondary" style={{fontSize: 'var(--fs-caption)'}}>Generating palette...</p>
+                            <p className="text-text-secondary text-sm">Generating palette...</p>
                           </>
                         )}
                       </div>
@@ -874,16 +948,16 @@ export default function Create() {
                         </div>
                         
                         {/* Legend */}
-                        <div className="flex items-center gap-4 text-text-secondary flex-wrap gap-2" style={{fontSize: 'var(--fs-caption)'}}>
+                        <div className="flex items-center gap-4 text-sm text-text-secondary">
                           <div className="flex items-center gap-1">
                             <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
-                              <span className="text-white" style={{fontSize: 'var(--fs-micro)'}}>✓</span>
+                              <span className="text-white text-xs">✓</span>
                             </div>
                             <span>You have this</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <div className="w-4 h-4 rounded-full bg-purple-500 flex items-center justify-center">
-                              <span className="text-white" style={{fontSize: 'var(--fs-micro)'}}>+</span>
+                              <span className="text-white text-xs">+</span>
                             </div>
                             <span>Add to your kit</span>
                           </div>
@@ -895,18 +969,22 @@ export default function Create() {
               </div>
             )}
 
-            <div className="flex gap-4 justify-center mt-8 flex-wrap gap-2">
+            <div className="flex gap-4 justify-center mt-8">
               <button
                 onClick={() => generatePalette()}
                 className="px-6 py-3 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all"
-                style={{minWidth: '0', minHeight: '44px'}}
               >
                 Mixing Guide
               </button>
-                            <button
+              <button
+                onClick={() => generateKit(selectedCountry || 'US')}
+                className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
+              >
+                Build My Kit
+              </button>
+              <button
                 onClick={tryAgain}
                 className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
-                style={{minWidth: '0', minHeight: '44px'}}
               >
                 Start over
               </button>
@@ -914,26 +992,215 @@ export default function Create() {
           </div>
         )}
 
+        {/* Kit Screen */}
+        {currentScreen === 'kit' && (
+          <div className="bg-surface border border-surface2 rounded-2xl p-6">
+            {/* Confirmation Banner */}
+            {selectedIdea && (
+              <div className="bg-gradient-to-r from-purple-500/10 to-violet-500/10 border border-purple-500/20 rounded-lg p-4 mb-6">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    <p className="text-text-primary">
+                      Creating based on: <span className="font-semibold">{selectedIdea.title}</span>
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedIdea(null)
+                      setCurrentScreen('ideas')
+                    }}
+                    className="text-purple-500 hover:text-purple-600 text-sm font-medium transition-colors"
+                  >
+                    Change
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-semibold text-text-primary">
+                {selectedIdea ? `Your Kit for ${selectedIdea.title}` : 'Your Art Kit'}
+              </h3>
+              <div className="text-sm text-text-secondary">
+                Based on your materials in {selectedCountry || 'your location'}
+              </div>
+            </div>
+
+            {kit === null ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-text-secondary">Building your kit...</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Essentials Section */}
+                <div className="bg-surface2 rounded-xl p-6">
+                  <h4 className="text-lg font-semibold text-white mb-4">Essentials</h4>
+                  <div className="space-y-3">
+                    {kit.essentials.map((item, index) => (
+                      <div key={index} className="bg-surface rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <h5 className="font-medium text-text-primary">{item.item}</h5>
+                          <p className="text-sm text-text-secondary mb-2">{item.reason}</p>
+                          <span className="text-sm font-medium text-primary">{item.estimatedPrice}</span>
+                        </div>
+                        {item.localAlternative && (
+                          <p className="text-xs text-text-secondary">Local alternative: {item.localAlternative}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Nice to Have Section */}
+                <div className="bg-surface2 rounded-xl p-6">
+                  <h4 className="text-lg font-semibold text-white mb-4">Nice to Have</h4>
+                  <div className="space-y-3">
+                    {kit.niceToHave.map((item, index) => (
+                      <div key={index} className="bg-surface rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <h5 className="font-medium text-text-primary">{item.item}</h5>
+                          <p className="text-sm text-text-secondary mb-2">{item.reason}</p>
+                          <span className="text-sm font-medium text-primary">{item.estimatedPrice}</span>
+                        </div>
+                        {item.localAlternative && (
+                          <p className="text-xs text-text-secondary">Local alternative: {item.localAlternative}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Total Cost */}
+                <div className="bg-surface2 rounded-xl p-6">
+                  <h4 className="text-lg font-semibold text-white mb-2">Total Estimated Cost</h4>
+                  <p className="text-2xl font-bold text-primary">{kit.totalEstimatedCost}</p>
+                </div>
+
+                <div className="flex gap-4 justify-center mt-8">
+                  {detectedMaterials.length > 0 && (
+                    <button
+                      onClick={loadMaterialInsights}
+                      disabled={loadingInsights}
+                      className="px-6 py-3 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all flex items-center gap-2 disabled:opacity-50"
+                    >
+                      <BookOpen className="w-4 h-4" />
+                      {loadingInsights ? 'Analysing your materials...' : 'View Material Insights'}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      alert('Coming in Step 14: Export Kit functionality!')
+                    }}
+                    className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
+                  >
+                    Export Kit
+                  </button>
+                  <button
+                    onClick={tryAgain}
+                    className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
+                  >
+                    Start over
+                  </button>
+                </div>
+
+                {/* Material Insights Cards */}
+                {materialInsights.length > 0 && (
+                  <div className="mt-8 space-y-3">
+                    <h4 className="text-lg font-semibold text-white mb-4">Material Insights</h4>
+                    {materialInsights.map((insight, index) => (
+                      <div key={index} className="bg-[#1A1A2E] rounded-xl p-4 mb-3">
+                        <button
+                          onClick={() => toggleCard(index)}
+                          className="w-full flex justify-between items-center text-left"
+                        >
+                          <h5 className="text-white font-medium">{insight.material}</h5>
+                          {expandedCards.has(index) ? (
+                            <ChevronUp className="w-5 h-5 text-white" />
+                          ) : (
+                            <ChevronDown className="w-5 h-5 text-white" />
+                          )}
+                        </button>
+                        
+                        {expandedCards.has(index) && (
+                          <div className="mt-4 space-y-4">
+                            {insight.tips && insight.tips.length > 0 && (
+                              <div>
+                                <h6 className="text-sm font-medium text-white mb-2">Tips</h6>
+                                <ul className="list-disc list-inside space-y-1">
+                                  {insight.tips.map((tip: string, tipIndex: number) => (
+                                    <li key={tipIndex} className="text-sm" style={{ color: '#6C3CE1' }}>
+                                      {tip}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            
+                            {insight.careInstructions && insight.careInstructions.length > 0 && (
+                              <div>
+                                <h6 className="text-sm font-medium text-white mb-2">Care Instructions</h6>
+                                <ul className="list-disc list-inside space-y-1">
+                                  {insight.careInstructions.map((instruction: string, instructionIndex: number) => (
+                                    <li key={instructionIndex} className="text-sm" style={{ color: '#3D9BE9' }}>
+                                      {instruction}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            
+                            {insight.commonMistakes && insight.commonMistakes.length > 0 && (
+                              <div>
+                                <h6 className="text-sm font-medium text-white mb-2">Common Mistakes</h6>
+                                <ul className="list-disc list-inside space-y-1">
+                                  {insight.commonMistakes.map((mistake: string, mistakeIndex: number) => (
+                                    <li key={mistakeIndex} className="text-sm" style={{ color: '#FF3D71' }}>
+                                      {mistake}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            
+                            {insight.shelfLife && (
+                              <div>
+                                <h6 className="text-sm font-medium text-white mb-2">Shelf Life</h6>
+                                <p className="text-sm" style={{ color: '#A0A0C0' }}>
+                                  {insight.shelfLife}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Error Screen */}
         {currentScreen === 'error' && (
           <div className="bg-surface border border-surface2 rounded-2xl p-6 text-center">
-            <div className="text-lg mb-4" style={{fontSize: 'var(--fs-display)'}}>â ï¸</div>
-            <h3 className="font-semibold text-text-primary mb-2" style={{fontSize: 'var(--fs-h1)'}}>
+            <div className="text-4xl mb-4">â ï¸</div>
+            <h3 className="text-xl font-semibold text-text-primary mb-2">
               {error === 'No materials detected' ? 'No materials found' : 'Something went wrong'}
             </h3>
-            <p className="text-text-secondary mb-6" style={{fontSize: 'var(--fs-body)'}}>
+            <p className="text-text-secondary mb-6">
               {error === 'No materials detected' 
                 ? "We couldn't detect any materials. Try a clearer photo or describe your materials instead."
                 : error
               }
             </p>
-            <div className="flex gap-4 justify-center flex-wrap gap-2">
+            <div className="flex gap-4 justify-center">
               {error === 'No materials detected' ? (
                 <button
                   onClick={tryAgain}
                   className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
-                  style={{minWidth: '0', minHeight: '44px'}}
                 >
                   Try again
                 </button>
@@ -942,14 +1209,12 @@ export default function Create() {
                   <button
                     onClick={backToSelection}
                     className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
-                    style={{minWidth: '0', minHeight: '44px'}}
                   >
                     Back to selection
                   </button>
                   <button
                     onClick={tryAgain}
                     className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
-                    style={{minWidth: '0', minHeight: '44px'}}
                   >
                     Try again
                   </button>

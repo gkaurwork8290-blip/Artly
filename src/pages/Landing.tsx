@@ -1,82 +1,50 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { Chrome } from 'lucide-react'
 
 export default function Landing() {
   const { signInWithGoogle } = useAuth()
 
   return (
-    <div 
-      className="flex flex-col items-center justify-between" 
-      style={{ 
-        backgroundColor: 'var(--color-bg)', 
-        minHeight: '100vh',
-        maxWidth: '400px',
-        margin: '0 auto',
-        padding: '48px 24px'
-      }}
-    >
-      {/* TOP SECTION */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-4">
-        {/* 48×48 rounded square with A */}
-        <div 
-          className="w-12 h-12 flex items-center justify-center"
-          style={{ 
-            backgroundColor: 'var(--color-primary)', 
-            borderRadius: '12px' 
-          }}
-        >
-          <span className="text-2xl font-black text-white">A</span>
-        </div>
-        
-        {/* artly wordmark */}
-        <h1 
-          className="text-2xl font-black"
-          style={{ 
-            color: 'var(--color-text)', 
-            marginTop: '8px' 
-          }}
-        >
-          artly
-        </h1>
-        
-        {/* Tagline */}
-        <p 
-          className="text-sm text-center"
-          style={{ 
-            color: 'var(--color-text-2)', 
-            maxWidth: '280px' 
-          }}
-        >
-          Your AI creative companion. Make art with what you have.
-        </p>
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center relative overflow-hidden">
+      {/* Background abstract shapes */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-20 left-20 w-72 h-72 bg-gradient-to-r from-primary to-tertiary rounded-full opacity-20 blur-3xl"></div>
+        <div className="absolute bottom-20 right-20 w-96 h-96 bg-gradient-to-r from-secondary to-primary rounded-full opacity-20 blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-gradient-to-r from-tertiary to-success rounded-full opacity-10 blur-3xl"></div>
       </div>
 
-      {/* BOTTOM SECTION */}
-      <div className="w-full flex flex-col gap-3" style={{ paddingBottom: '32px' }}>
-        {/* Primary button */}
-        <button
-          onClick={signInWithGoogle}
-          className="w-full font-semibold text-white flex items-center justify-center gap-2"
-          style={{ 
-            height: '48px',
-            borderRadius: '12px',
-            backgroundColor: 'var(--color-primary)',
-            fontSize: '14px'
-          }}
-        >
-          <Chrome size={16} />
-          Sign in with Google
-        </button>
+      {/* Main content */}
+      <div className="relative z-10 text-center px-6 max-w-2xl mx-auto">
+        <h1 className="text-6xl md:text-8xl font-bold mb-6 bg-gradient-to-r from-primary via-secondary to-tertiary bg-clip-text text-transparent">
+          🎨 Artly
+        </h1>
         
-        {/* Guest link */}
-        <Link
-          to="/create"
-          className="text-xs text-center cursor-pointer"
-          style={{ color: 'var(--color-text-3)' }}
-        >
-          Continue as guest — no account needed
-        </Link>
+        <p className="text-xl md:text-2xl text-text-secondary mb-12 font-medium">
+          Discover what you can create — starting with what you have
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <Link
+            to="/create"
+            className="px-8 py-4 bg-gradient-to-r from-primary to-secondary text-white font-semibold rounded-full hover:shadow-lg hover:shadow-primary/25 transform hover:scale-105 transition-all duration-200"
+          >
+            Get Started
+          </Link>
+          
+          <button
+            onClick={signInWithGoogle}
+            className="px-8 py-4 border-2 border-[#6C3CE1] text-white font-semibold rounded-full hover:bg-[#6C3CE1]/20 transition-colors duration-200"
+          >
+            Sign in with Google
+          </button>
+          
+          <Link
+            to="/profile"
+            className="px-8 py-4 text-text-primary hover:text-white font-medium transition-colors duration-200"
+          >
+            Sign In
+          </Link>
+        </div>
       </div>
     </div>
   )
