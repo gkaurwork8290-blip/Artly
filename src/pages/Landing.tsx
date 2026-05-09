@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import {} from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { Lightbulb, Palette, User, Lock } from 'lucide-react'
 
