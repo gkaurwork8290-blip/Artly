@@ -23,18 +23,27 @@ export default function Landing() {
       border: '1px solid rgba(108, 60, 225, 0.25)',
       boxShadow: '0 0 40px rgba(108, 60, 225, 0.08)',
       padding: 'clamp(24px, 5vw, 48px)',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '32px',
     }}
     className="landing-inner"
     >
 
       {/* ── BRANDING (always visible) ── */}
-      <div className="landing-branding">
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '8px',
+        textAlign: 'center',
+      }}>
         <img
           src="/logo.png"
           alt="artly logo"
           style={{
-            width: 'clamp(100px, 15vw, 150px)',
-            height: 'clamp(100px, 15vw, 150px)',
+            width: 'clamp(80px, 12vw, 120px)',
+            height: 'clamp(80px, 12vw, 120px)',
             objectFit: 'contain',
             mixBlendMode: 'screen',
           }}
@@ -222,47 +231,22 @@ export default function Landing() {
 
     {/* Responsive styles */}
     <style>{`
-  .landing-inner {
-    display: flex;
-    flex-direction: column;
-    gap: 32px;
-  }
-  .landing-columns {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-  }
-  .landing-branding {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    text-align: center;
-  }
-  @media (min-width: 768px) {
-    .landing-inner {
-      flex-direction: row;
-      align-items: center;
-      gap: 48px;
-    }
-    .landing-branding {
-      flex: 1;
-      align-items: flex-start;
-      text-align: left;
-    }
-    .landing-branding h1 {
-      text-align: left;
-    }
-    .landing-branding p {
-      text-align: left;
-    }
-    .landing-columns {
-      flex: 1;
-      flex-direction: column;
-      gap: 24px;
-    }
-  }
-`}</style>
+      .landing-columns {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+      @media (min-width: 768px) {
+        .landing-columns {
+          flex-direction: row;
+          align-items: stretch;
+          gap: 40px;
+        }
+        .landing-columns > div {
+          flex: 1;
+        }
+      }
+    `}</style>
 
   </div>
 )
