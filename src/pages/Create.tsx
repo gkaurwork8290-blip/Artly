@@ -50,8 +50,6 @@ export default function Create() {
   const [expandedIdea, setExpandedIdea] = useState<number | null>(null)
   const [selectedIdea, setSelectedIdea] = useState<Idea | null>(null)
   const [colourMatches, setColourMatches] = useState<any[]>([])
-  const [kit, setKit] = useState<ShoppingKit | null>(null)
-  const [selectedCountry] = useState<string>('')
   const [materialInsights, setMaterialInsights] = useState<any[]>([])
   const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set())
   const [loadingInsights, setLoadingInsights] = useState(false)
