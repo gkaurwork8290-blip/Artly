@@ -16,6 +16,10 @@ function AppContent() {
     localStorage.getItem('artly_onboarding_complete') === 'true'
   )
 
+  if (location.pathname === '/') {
+    return null
+  }
+
   // If onboarding is not complete, redirect to /onboarding
   if (!onboardingComplete && location.pathname !== '/onboarding') {
     return <Navigate to="/onboarding" replace />
