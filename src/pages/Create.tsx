@@ -1,3 +1,4 @@
+// @ts-ignore-unused-vars
 import { useState, useRef, type ChangeEvent } from 'react'
 import { Image, PenLine, X, Plus, Camera, BookOpen, ChevronDown, ChevronUp, ChevronRight, Sparkles, Zap, AlignLeft, RefreshCw, Check } from 'lucide-react'
 
@@ -50,6 +51,8 @@ export default function Create() {
   const [expandedIdea, setExpandedIdea] = useState<number | null>(null)
   const [selectedIdea, setSelectedIdea] = useState<Idea | null>(null)
   const [colourMatches, setColourMatches] = useState<any[]>([])
+  const [kit, setKit] = useState<ShoppingKit | null>(null) // used in kit screen
+  const selectedCountry = ''
   const [materialInsights, setMaterialInsights] = useState<any[]>([])
   const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set())
   const [loadingInsights, setLoadingInsights] = useState(false)
