@@ -152,7 +152,7 @@ export default function Landing() {
           gap: '0',
         }}>
           <button
-            onClick={() => window.location.href = '/create'}
+            onClick={() => window.location.href = '/onboarding'}
             style={{
               width: '100%',
               height: '52px',

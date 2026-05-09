@@ -1,195 +1,178 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Sprout, Palette, Star, Lightbulb, ArrowRight, Check, Paintbrush } from 'lucide-react'
 
-type SkillLevel = 'beginner' | 'intermediate' | 'advanced'
+const skills = [
+  {
+    id: 'beginner',
+    icon: <Sprout size={28} color="#6C3CE1" strokeWidth={1.5} />,
+    title: 'Beginner',
+    subtitle: 'New to art or just exploring',
+    description: "I'm learning the basics and trying different things.",
+  },
+  {
+    id: 'intermediate',
+    icon: <Palette size={28} color="#6C3CE1" strokeWidth={1.5} />,
+    title: 'Intermediate',
+    subtitle: 'Comfortable with basics, exploring styles',
+    description: "I know the basics and I'm exploring techniques and styles.",
+  },
+  {
+    id: 'advanced',
+    icon: <Star size={28} color="#6C3CE1" strokeWidth={1.5} />,
+    title: 'Advanced',
+    subtitle: 'Confident artist, refining your craft',
+    description: "I'm experienced and focused on improving my craft.",
+  },
+]
 
-interface OnboardingProps {
-  setOnboardingComplete: (complete: boolean) => void
-}
-
-interface SkillCard {
-  level: SkillLevel
-  emoji: string
-  title: string
-  description: string
-}
-
-export default function Onboarding({ setOnboardingComplete }: OnboardingProps) {
-  const [currentStep, setCurrentStep] = useState(1)
-  const [selectedLevel, setSelectedLevel] = useState<SkillLevel | null>(null)
+export default function Onboarding() {
   const navigate = useNavigate()
-
-  const skillCards: SkillCard[] = [
-    {
-      level: 'beginner',
-      emoji: '🌱',
-      title: 'Beginner',
-      description: "I'm just starting out"
-    },
-    {
-      level: 'intermediate',
-      emoji: '🎨',
-      title: 'Intermediate',
-      description: "I've been creating for a while"
-    },
-    {
-      level: 'advanced',
-      emoji: '⭐',
-      title: 'Advanced',
-      description: "I'm an experienced artist"
-    }
-  ]
+  const [selected, setSelected] = useState<string | null>(null)
 
   const handleContinue = () => {
-    console.log('handleContinue called, currentStep:', currentStep, 'selectedLevel:', selectedLevel)
-    
-    if (currentStep === 1) {
-      setCurrentStep(2)
-    } else if (currentStep === 2 && selectedLevel) {
-      setCurrentStep(3)
-    } else if (currentStep === 3 && selectedLevel) {
-      // Save to localStorage
-      localStorage.setItem('artly_skill_level', selectedLevel)
-      localStorage.setItem('artly_onboarding_complete', 'true')
-      // Update parent state immediately to prevent timing issues
-      setOnboardingComplete(true)
-      console.log('Onboarding complete, navigating to /create...')
-      // Navigate to create
-      navigate('/create', { replace: true })
+    if (selected) {
+      localStorage.setItem('artly_skill', selected)
     }
+    localStorage.setItem('artly_onboarding_complete', 'true')
+    navigate('/create')
   }
 
-  const getReadyMessage = () => {
-    switch (selectedLevel) {
-      case 'beginner':
-        return "We'll keep things simple and guide you every step of the way"
-      case 'intermediate':
-        return "We'll give you creative freedom with helpful suggestions"
-      case 'advanced':
-        return "We'll give you full creative control with advanced insights"
-      default:
-        return "Let's start your creative journey"
-    }
-  }
-
-  const renderStep = () => {
-    switch (currentStep) {
-      case 1:
-        return (
-          <div className="text-center">
-            <div className="text-6xl mb-8">🎨</div>
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary via-secondary to-tertiary bg-clip-text text-transparent">
-              Welcome to Artly
-            </h1>
-            <p className="text-xl text-text-secondary mb-12 max-w-md mx-auto">
-              Your AI creative assistant — let's get you set up in 60 seconds
-            </p>
-            <button
-              onClick={handleContinue}
-              className="px-8 py-4 bg-gradient-to-r from-primary to-secondary text-white font-semibold rounded-full hover:shadow-lg hover:shadow-primary/25 transform hover:scale-105 transition-all duration-200"
-            >
-              Let's Go
-            </button>
-          </div>
-        )
-
-      case 2:
-        return (
-          <div className="text-center">
-            <h2 className="text-3xl md:text-4xl font-bold mb-12 text-text-primary">
-              What's your experience level?
-            </h2>
-            <div className="grid gap-4 max-w-2xl mx-auto mb-8">
-              {skillCards.map((card) => (
-                <div
-                  key={card.level}
-                  onClick={() => setSelectedLevel(card.level)}
-                  className={`p-6 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
-                    selectedLevel === card.level
-                      ? 'border-gradient-to-r from-primary to-secondary bg-surface'
-                      : 'border-surface2 bg-surface hover:border-surface'
-                  }`}
-                  style={{
-                    borderColor: selectedLevel === card.level ? 'var(--primary)' : undefined,
-                    background: selectedLevel === card.level 
-                      ? 'linear-gradient(135deg, var(--surface), var(--surface2))' 
-                      : 'var(--surface)'
-                  }}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="text-3xl">{card.emoji}</div>
-                    <div className="text-left">
-                      <div className="text-xl font-semibold text-text-primary mb-1">
-                        {card.title}
-                      </div>
-                      <div className="text-text-secondary">
-                        {card.description}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <button
-              onClick={handleContinue}
-              disabled={!selectedLevel}
-              className={`px-8 py-4 font-semibold rounded-full transition-all duration-200 ${
-                selectedLevel
-                  ? 'bg-gradient-to-r from-primary to-secondary text-white hover:shadow-lg hover:shadow-primary/25 transform hover:scale-105'
-                  : 'bg-surface2 text-text-secondary cursor-not-allowed'
-              }`}
-            >
-              Continue
-            </button>
-          </div>
-        )
-
-      case 3:
-        return (
-          <div className="text-center">
-            <div className="text-6xl mb-8">✨</div>
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary via-secondary to-tertiary bg-clip-text text-transparent">
-              You're all set!
-            </h1>
-            <p className="text-xl text-text-secondary mb-12 max-w-md mx-auto">
-              {getReadyMessage()}
-            </p>
-            <button
-              onClick={() => {
-                console.log('Start Creating button clicked!')
-                handleContinue()
-              }}
-              className="px-8 py-4 bg-gradient-to-r from-primary to-secondary text-white font-semibold rounded-full hover:shadow-lg hover:shadow-primary/25 transform hover:scale-105 transition-all duration-200"
-            >
-              Start Creating
-            </button>
-          </div>
-        )
-
-      default:
-        return null
-    }
+  const handleSkip = () => {
+    localStorage.setItem('artly_onboarding_complete', 'true')
+    navigate('/create')
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-6">
-      <div className="w-full max-w-4xl">
-        {/* Progress indicators */}
-        <div className="flex justify-center gap-2 mb-12">
-          {[1, 2, 3].map((step) => (
-            <div
-              key={step}
-              className={`h-2 rounded-full transition-all duration-300 ${
-                step <= currentStep
-                  ? 'w-24 bg-gradient-to-r from-primary to-secondary'
-                  : 'w-8 bg-surface2'
-              }`}
-            />
-          ))}
+    <div style={{
+      minHeight: '100dvh',
+      backgroundColor: 'var(--color-bg)',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      padding: 'clamp(24px, 5vw, 48px) 16px 32px',
+      boxSizing: 'border-box',
+    }}>
+      <div style={{ width: '100%', maxWidth: '480px', display: 'flex', flexDirection: 'column', gap: '0' }}>
+
+        {/* Headline */}
+        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '10px' }}>
+            <h1 style={{ fontSize: 'clamp(22px, 5vw, 30px)', fontWeight: '800', color: 'var(--color-text)', margin: 0, lineHeight: 1.2 }}>
+              Where are you in your art journey?
+            </h1>
+            <Paintbrush size={28} color="#6C3CE1" strokeWidth={1.5} style={{ flexShrink: 0 }} />
+          </div>
+          <p style={{ fontSize: 'clamp(13px, 3vw, 15px)', color: 'var(--color-text-2)', margin: 0, lineHeight: 1.5 }}>
+            This helps us tailor ideas and palettes that match your level.
+          </p>
         </div>
 
-        {/* Step content */}
-        {renderStep()}
+        {/* Skill cards */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+          {skills.map((skill) => {
+            const isSelected = selected === skill.id
+            return (
+              <div
+                key={skill.id}
+                onClick={() => setSelected(skill.id)}
+                style={{
+                  backgroundColor: isSelected ? 'rgba(108, 60, 225, 0.08)' : 'var(--color-surface)',
+                  border: isSelected ? '1.5px solid #6C3CE1' : '1.5px solid rgba(255,255,255,0.06)',
+                  borderRadius: '16px',
+                  padding: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '14px',
+                  cursor: 'pointer',
+                  transition: 'border 0.15s, background 0.15s',
+                  boxShadow: isSelected ? '0 0 0 1px rgba(108,60,225,0.3)' : 'none',
+                }}
+              >
+                {/* Icon container */}
+                <div style={{
+                  width: '52px', height: '52px', borderRadius: '14px',
+                  backgroundColor: isSelected ? 'rgba(108,60,225,0.15)' : 'var(--color-bg)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
+                  {skill.icon}
+                </div>
+
+                {/* Text */}
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: '0 0 2px', fontSize: 'clamp(15px, 3.5vw, 17px)', fontWeight: '700', color: 'var(--color-text)' }}>
+                    {skill.title}
+                  </p>
+                  <p style={{ margin: '0 0 4px', fontSize: 'clamp(11px, 2.5vw, 13px)', color: '#6C3CE1', fontWeight: '500' }}>
+                    {skill.subtitle}
+                  </p>
+                  <p style={{ margin: 0, fontSize: 'clamp(11px, 2.5vw, 13px)', color: 'var(--color-text-2)', lineHeight: 1.4 }}>
+                    {skill.description}
+                  </p>
+                </div>
+
+                {/* Selector circle */}
+                <div style={{
+                  width: '26px', height: '26px', borderRadius: '50%', flexShrink: 0,
+                  border: isSelected ? '2px solid #6C3CE1' : '2px solid rgba(255,255,255,0.2)',
+                  backgroundColor: isSelected ? '#6C3CE1' : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.15s',
+                }}>
+                  {isSelected && <Check size={14} color="white" strokeWidth={3} />}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Hint bar */}
+        <div style={{
+          backgroundColor: 'var(--color-surface)',
+          border: '1px solid rgba(255,255,255,0.05)',
+          borderRadius: '12px',
+          padding: '12px 14px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          marginBottom: '24px',
+        }}>
+          <Lightbulb size={16} color="var(--color-text-3)" strokeWidth={1.5} />
+          <span style={{ fontSize: '12px', color: 'var(--color-text-3)' }}>
+            You can change this anytime in Settings.
+          </span>
+        </div>
+
+        {/* Continue button */}
+        <button
+          onClick={handleContinue}
+          style={{
+            width: '100%', height: '52px',
+            background: 'linear-gradient(90deg, #6C3CE1 0%, #FF6B35 100%)',
+            color: 'white', border: 'none', borderRadius: '16px',
+            fontWeight: '700', fontSize: 'clamp(14px, 3vw, 16px)',
+            cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+            marginBottom: '16px',
+            opacity: selected ? 1 : 0.5,
+          }}
+        >
+          Continue
+          <ArrowRight size={18} color="white" strokeWidth={2.5} />
+        </button>
+
+        {/* Skip */}
+        <button
+          onClick={handleSkip}
+          style={{
+            background: 'none', border: 'none',
+            color: '#6C3CE1', fontSize: '14px', fontWeight: '600',
+            cursor: 'pointer', textAlign: 'center', width: '100%',
+          }}
+        >
+          Skip for now
+        </button>
+
       </div>
     </div>
   )

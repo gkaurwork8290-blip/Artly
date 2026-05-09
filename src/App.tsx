@@ -1,5 +1,4 @@
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom'
-import { useState } from 'react'
 import Home from './pages/Home'
 import Landing from './pages/Landing'
 import Create from './pages/Create'
@@ -12,11 +11,8 @@ import { AuthProvider } from './contexts/AuthContext'
 
 function AppContent() {
   const location = useLocation()
-  const [onboardingComplete, setOnboardingComplete] = useState(() => 
-    localStorage.getItem('artly_onboarding_complete') === 'true'
-  )
+  const onboardingComplete = localStorage.getItem('artly_onboarding_complete') === 'true'
 
-  
   if (onboardingComplete && location.pathname === '/') {
     return <Navigate to="/create" replace />
   }
@@ -31,7 +27,7 @@ function AppContent() {
         <Route path="/home" element={<Home />} />
         <Route 
           path="/onboarding" 
-          element={<Onboarding setOnboardingComplete={setOnboardingComplete} />} 
+          element={<Onboarding />} 
         />
         <Route path="/create" element={<Create />} />
         <Route path="/history" element={<History />} />

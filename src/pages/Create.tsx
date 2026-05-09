@@ -1,7 +1,7 @@
 import { useState, useRef, type ChangeEvent } from 'react'
-import { Image, PenLine, X, Plus, Camera, BookOpen, ChevronDown, ChevronUp } from 'lucide-react'
+import { Image, PenLine, X, Plus, Camera, BookOpen, ChevronDown, ChevronUp, ChevronRight, Sparkles, Zap, AlignLeft, RefreshCw, Check } from 'lucide-react'
 
-type InputMethod = 'upload' | 'camera' | 'describe' | 'quickscan' | null
+type InputMethod = 'upload' | 'camera' | 'describe' | null
 type InputData = {
   image?: string
   description?: string
@@ -41,14 +41,12 @@ type ShoppingKit = {
 export default function Create() {
   const [selectedMethod, setSelectedMethod] = useState<InputMethod>(null)
   const [inputData, setInputData] = useState<InputData>({ method: null })
-  const [isScanning, setIsScanning] = useState(false)
   const [currentScreen, setCurrentScreen] = useState<Screen>('selection')
   const [detectedMaterials, setDetectedMaterials] = useState<Material[]>([])
   const [manualMaterial, setManualMaterial] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [ideas, setIdeas] = useState<Idea[]>([])
   const [themeInput, setThemeInput] = useState('')
-  const [showThemeInput, setShowThemeInput] = useState(false)
   const [expandedIdea, setExpandedIdea] = useState<number | null>(null)
   const [selectedIdea, setSelectedIdea] = useState<Idea | null>(null)
   const [colourMatches, setColourMatches] = useState<any[]>([])
@@ -76,13 +74,9 @@ export default function Create() {
 
   const handleCameraCapture = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
-      })
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
       streamRef.current = stream
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-      }
+      if (videoRef.current) videoRef.current.srcObject = stream
       setSelectedMethod('camera')
     } catch (error) {
       console.error('Camera access denied:', error)
@@ -112,91 +106,38 @@ export default function Create() {
     }
   }
 
-  const handleQuickScan = async () => {
-    setIsScanning(true)
-    setSelectedMethod('quickscan')
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
-      })
-      streamRef.current = stream
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-      }
-      
-      // Simulate scanning process
-      setTimeout(() => {
-        const canvas = document.createElement('canvas')
-        canvas.width = videoRef.current?.videoWidth || 640
-        canvas.height = videoRef.current?.videoHeight || 480
-        const ctx = canvas.getContext('2d')
-        if (ctx && videoRef.current) {
-          ctx.drawImage(videoRef.current, 0, 0)
-          const imageUrl = canvas.toDataURL('image/jpeg')
-          setInputData({ image: imageUrl, method: 'quickscan' })
-          setIsScanning(false)
-          stopCamera()
-        }
-      }, 3000)
-    } catch (error) {
-      console.error('Quick scan failed:', error)
-      setIsScanning(false)
-      alert('Quick scan failed. Please check camera permissions.')
-    }
-  }
-
   const handleRetake = () => {
     setInputData({ method: selectedMethod })
-    if (selectedMethod === 'camera') {
-      handleCameraCapture()
-    }
+    if (selectedMethod === 'camera') handleCameraCapture()
   }
 
   const detectMaterials = async () => {
     setCurrentScreen('detecting')
     setError(null)
-
     try {
       let requestBody: any = {}
-
       if (inputData.image) {
-        // Convert image to base64 (remove data:image/jpeg;base64, prefix)
         requestBody.image = inputData.image.split(',')[1]
       } else if (inputData.description) {
         requestBody.text = inputData.description
       } else {
         throw new Error('No input data available')
       }
-
       const response = await fetch('/api/detect-materials', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),
       })
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || `API request failed`)
+        throw new Error(errorData.error || 'API request failed')
       }
-
       const data = await response.json()
       const materials = data.materials
-
-      // Validate materials array
-      if (!Array.isArray(materials)) {
-        throw new Error('Invalid response format')
-      }
-
-      // Check if materials array is empty
-      if (materials.length === 0) {
-        throw new Error('No materials detected')
-      }
-
+      if (!Array.isArray(materials)) throw new Error('Invalid response format')
+      if (materials.length === 0) throw new Error('No materials detected')
       setDetectedMaterials(materials)
       setCurrentScreen('confirmation')
-
     } catch (error) {
       console.error('Detection failed:', error)
       setError(error instanceof Error ? error.message : 'Detection failed')
@@ -204,17 +145,11 @@ export default function Create() {
     }
   }
 
-  const handleDetectMaterials = () => {
-    detectMaterials()
-  }
+  const handleDetectMaterials = () => { detectMaterials() }
 
   const addManualMaterial = () => {
     if (manualMaterial.trim()) {
-      const newMaterial: Material = {
-        name: manualMaterial.trim(),
-        category: 'other',
-        confidence: 'manual'
-      }
+      const newMaterial: Material = { name: manualMaterial.trim(), category: 'other', confidence: 'manual' }
       setDetectedMaterials([...detectedMaterials, newMaterial])
       setManualMaterial('')
     }
@@ -229,30 +164,19 @@ export default function Create() {
     setError(null)
     setIdeas([])
     setExpandedIdea(null)
-
     try {
-      const skillLevel = localStorage.getItem('artly_skill_level') || 'beginner'
+      const skillLevel = localStorage.getItem('artly_skill') || 'beginner'
       const response = await fetch('/api/generate-ideas', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          materials: detectedMaterials.map(m => m.name),
-          skillLevel,
-          theme: theme || undefined
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ materials: detectedMaterials.map(m => m.name), skillLevel, theme: theme || undefined }),
       })
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.error || 'API request failed')
       }
-
       const data = await response.json()
-      const ideas = data.ideas || []
-
-      setIdeas(ideas)
+      setIdeas(data.ideas || [])
     } catch (error) {
       console.error('Ideas generation failed:', error)
       setError(error instanceof Error ? error.message : 'Ideas generation failed')
@@ -260,95 +184,29 @@ export default function Create() {
     }
   }
 
-  const generateKit = async (country?: string) => {
-    setCurrentScreen('kit')
-    setError(null)
-    setKit(null)
-
-    try {
-      const response = await fetch('/api/generate-kit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          materials: detectedMaterials.map(m => m.name),
-          country: country || undefined,
-          ideaTitle: selectedIdea?.title || undefined
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || 'API request failed')
-      }
-
-      const data = await response.json()
-      const kit: any = data || null
-
-      setKit(kit)
-    } catch (error: unknown) {
-      console.error('Kit generation failed:', error)
-      setError(error instanceof Error ? error.message : 'Kit generation failed')
-      setCurrentScreen('error')
-    }
-  }
-
   const generatePalette = async () => {
-    console.log('🎨 generatePalette called')
-    console.log('📝 selectedIdea:', selectedIdea)
-    console.log('🎨 detectedMaterials:', detectedMaterials)
-    
     setCurrentScreen('palette')
     setError(null)
-
     const colourMaterials = filterColourMaterials(detectedMaterials)
-    console.log('🎨 Colour materials:', colourMaterials)
-
-    if (colourMaterials.length === 0) {
-      console.log('❌ No colour materials detected')
-      return
-    }
-
+    if (colourMaterials.length === 0) return
     try {
-      const requestBody = {
-        materials: colourMaterials,
-        ideaTitle: selectedIdea?.title || undefined,
-        ideaSteps: selectedIdea?.steps || []
-      }
-      
-      console.log('🚀 Sending request body:', requestBody)
-      
       const response = await fetch('/api/generate-palette', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ materials: colourMaterials, ideaTitle: selectedIdea?.title || undefined, ideaSteps: selectedIdea?.steps || [] }),
       })
-      
-      console.log('📡 Response status:', response.status)
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        console.error('❌ API Error:', errorData)
         throw new Error(errorData.error || 'API request failed')
       }
-
       const data = await response.json()
-      console.log('✅ Palette generated successfully:', data)
-      // Set colour matches for display
       if (data.colors && Array.isArray(data.colors)) {
-        const matches = data.colors.map((color: any) => ({
-          hex: color.hex,
-          name: color.name,
-          status: 'have' as const, // Default to have since it's from materials
-          matchedMaterial: color.materialSource
-        }))
-        setColourMatches(matches)
+        setColourMatches(data.colors.map((color: any) => ({
+          hex: color.hex, name: color.name, status: 'have' as const, matchedMaterial: color.materialSource
+        })))
       }
-    } catch (error: unknown) {
-      console.error('💥 Palette generation failed:', error)
+    } catch (error) {
+      console.error('Palette generation failed:', error)
       setError(error instanceof Error ? error.message : 'Palette generation failed')
       setCurrentScreen('error')
     }
@@ -357,19 +215,12 @@ export default function Create() {
   const loadMaterialInsights = async () => {
     setLoadingInsights(true)
     try {
-      const materials = detectedMaterials.map(m => m.name)
       const response = await fetch('/api/material-insights', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ materials }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ materials: detectedMaterials.map(m => m.name) }),
       })
-
-      if (!response.ok) {
-        throw new Error('Failed to load material insights')
-      }
-
+      if (!response.ok) throw new Error('Failed to load material insights')
       const insights = await response.json()
       setMaterialInsights(insights)
     } catch (error) {
@@ -381,586 +232,370 @@ export default function Create() {
 
   const toggleCard = (index: number) => {
     const newExpanded = new Set(expandedCards)
-    if (newExpanded.has(index)) {
-      newExpanded.delete(index)
-    } else {
-      newExpanded.add(index)
-    }
+    if (newExpanded.has(index)) newExpanded.delete(index)
+    else newExpanded.add(index)
     setExpandedCards(newExpanded)
   }
 
   const filterColourMaterials = (materials: Material[]): string[] => {
-  const colourMaterials = [
-    'paint', 'watercolor', 'watercolour', 'acrylic', 'pastel', 'chalk', 
-    'crayon', 'ink', 'dye', 'charcoal', 'colored pencil', 
-    'marker', 'pressed flowers', 'pressed leaves', 'flowers', 'leaves',
-    'pigment', 'oil paint', 'tempera', 'gouache', 'watercolor paint',
-    'acrylic paint', 'oil paints', 'watercolors', 'coloured pencils'
-  ]
-  
-  return materials
-    .filter(m => colourMaterials.some(cm => 
-      m.name.toLowerCase().includes(cm.toLowerCase())
-    ))
-    .map(m => m.name)
-}
-
-  const confirmMaterials = () => {
-    generateIdeas()
+    const colourMaterials = ['paint', 'watercolor', 'watercolour', 'acrylic', 'pastel', 'chalk', 'crayon', 'ink', 'dye', 'charcoal', 'colored pencil', 'marker', 'pressed flowers', 'pressed leaves', 'flowers', 'leaves', 'pigment', 'oil paint', 'tempera', 'gouache', 'watercolor paint', 'acrylic paint', 'oil paints', 'watercolors', 'coloured pencils']
+    return materials.filter(m => colourMaterials.some(cm => m.name.toLowerCase().includes(cm.toLowerCase()))).map(m => m.name)
   }
 
-  const tryAgain = () => {
-    setCurrentScreen('selection')
-    setError(null)
-    setDetectedMaterials([])
-  }
+  const confirmMaterials = () => { generateIdeas() }
+  const tryAgain = () => { setCurrentScreen('selection'); setError(null); setDetectedMaterials([]) }
+  const backToSelection = () => { setCurrentScreen('selection'); setSelectedMethod(null); setInputData({ method: null }) }
 
-  const backToSelection = () => {
-    setCurrentScreen('selection')
-    setSelectedMethod(null)
-    setInputData({ method: null })
+  const s = {
+    page: { minHeight: '100dvh', backgroundColor: 'var(--color-bg)', paddingBottom: '80px', boxSizing: 'border-box' as const },
+    wrap: { maxWidth: '640px', margin: '0 auto', padding: 'clamp(16px, 4vw, 32px) 16px' },
+    heading: { fontSize: 'clamp(22px, 5vw, 30px)', fontWeight: '800', color: 'var(--color-text)', margin: '0 0 8px', textAlign: 'center' as const },
+    subheading: { fontSize: 'clamp(13px, 3vw, 15px)', color: 'var(--color-text-2)', margin: '0 0 28px', textAlign: 'center' as const, lineHeight: 1.5 },
+    card: { backgroundColor: 'var(--color-surface)', borderRadius: '16px', padding: '16px', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer' },
+    gradBtn: { width: '100%', height: '52px', background: 'linear-gradient(90deg, #6C3CE1 0%, #FF3D71 100%)', border: 'none', borderRadius: '16px', color: 'white', fontSize: '16px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' },
+    outlineBtn: { height: '48px', backgroundColor: 'var(--color-surface)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', color: 'var(--color-text)', fontSize: '14px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' },
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <div className="px-6 py-12 max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            What do you have?
-          </h1>
-          <p className="text-xl text-text-secondary">
-            Show us your materials and we'll spark your creativity
-          </p>
-        </div>
+    <div style={s.page}>
+      <div style={s.wrap}>
 
-        {/* Selection Screen */}
-        {currentScreen === 'selection' && (
+        {/* SELECTION SCREEN */}
+        {currentScreen === 'selection' && !selectedMethod && (
           <>
-            {/* Input Methods Grid */}
-            {!selectedMethod && (
-              <div className="grid md:grid-cols-2 gap-6 mb-8">
-                {/* Upload Photo */}
-                <div 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="bg-surface border border-surface2 rounded-2xl p-8 cursor-pointer hover:bg-surface2 transition-all duration-200 group"
-                >
-                  <div className="text-center">
-                    <Image size={40} className="mx-auto mb-4 text-text-primary group-hover:scale-110 transition-transform" />
-                    <h3 className="text-xl font-semibold text-text-primary mb-2">Upload Photo</h3>
-                    <p className="text-text-secondary">Choose an image from your device</p>
-                  </div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                </div>
+            <h1 style={s.heading}>
+              What would you like to <span style={{ color: 'var(--color-accent)' }}>use?</span>
+            </h1>
+            <p style={s.subheading}>
+              Add your materials in any way that's easiest for you.{' '}
+              <span style={{ color: 'var(--color-primary)' }}>We'll identify them automatically.</span>
+            </p>
 
-                {/* Use Camera */}
-                <div 
-                  onClick={handleCameraCapture}
-                  className="bg-surface border border-surface2 rounded-2xl p-8 cursor-pointer hover:bg-surface2 transition-all duration-200 group"
-                >
-                  <div className="text-center">
-                    <Camera size={40} className="mx-auto mb-4 text-text-primary group-hover:scale-110 transition-transform" />
-                    <h3 className="text-xl font-semibold text-text-primary mb-2">Use Camera</h3>
-                    <p className="text-text-secondary">Take a photo with your device</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+
+              {/* Add Photos */}
+              <div onClick={() => fileInputRef.current?.click()} style={s.card}>
+                <div style={{ width: '56px', height: '56px', borderRadius: '50%', flexShrink: 0, background: 'linear-gradient(135deg, #6C3CE1, #8B5CF6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Image size={24} color="white" strokeWidth={1.5} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: '0 0 2px', fontSize: '16px', fontWeight: '700', color: 'var(--color-text)' }}>Add Photos</p>
+                  <p style={{ margin: '0 0 8px', fontSize: '13px', color: 'var(--color-text-2)' }}>Upload one or more photos from your gallery</p>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(108,60,225,0.12)', borderRadius: '8px', padding: '4px 10px' }}>
+                    <Image size={12} color="#6C3CE1" />
+                    <span style={{ fontSize: '11px', color: '#6C3CE1', fontWeight: '500' }}>Multiple images supported</span>
                   </div>
                 </div>
+                <ChevronRight size={20} color="var(--color-text-3)" />
+                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
+              </div>
 
-                {/* Describe It */}
-                <div 
-                  onClick={() => setSelectedMethod('describe')}
-                  className="bg-surface border border-surface2 rounded-2xl p-8 cursor-pointer hover:bg-surface2 transition-all duration-200 group"
-                >
-                  <div className="text-center">
-                    <PenLine size={40} className="mx-auto mb-4 text-text-primary group-hover:scale-110 transition-transform" />
-                    <h3 className="text-xl font-semibold text-text-primary mb-2">Describe It</h3>
-                    <p className="text-text-secondary">Tell us what materials you have</p>
+              {/* Take Photo */}
+              <div onClick={handleCameraCapture} style={s.card}>
+                <div style={{ width: '56px', height: '56px', borderRadius: '50%', flexShrink: 0, background: 'linear-gradient(135deg, #C94070, #FF3D71)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Camera size={24} color="white" strokeWidth={1.5} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: '0 0 2px', fontSize: '16px', fontWeight: '700', color: 'var(--color-text)' }}>Take Photo</p>
+                  <p style={{ margin: '0 0 8px', fontSize: '13px', color: 'var(--color-text-2)' }}>Capture your materials using your camera</p>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(255,61,113,0.10)', borderRadius: '8px', padding: '4px 10px' }}>
+                    <Zap size={12} color="#FF3D71" />
+                    <span style={{ fontSize: '11px', color: '#FF3D71', fontWeight: '500' }}>Good lighting helps better detection</span>
                   </div>
                 </div>
+                <ChevronRight size={20} color="var(--color-text-3)" />
+              </div>
 
-                {/* Quick Scan */}
-                <div 
-                  onClick={handleQuickScan}
-                  className="bg-gradient-to-r from-primary to-secondary text-white rounded-2xl p-8 cursor-pointer hover:shadow-lg hover:shadow-primary/25 transform hover:scale-105 transition-all duration-200 md:col-span-2"
-                >
-                  <div className="text-center">
-                    <div className="text-4xl mb-4">â¡¡</div>
-                    <h3 className="text-xl font-semibold mb-2">Quick Scan</h3>
-                    <p className="opacity-90">Snap your desk â get instant ideas</p>
+              {/* Describe Materials */}
+              <div onClick={() => setSelectedMethod('describe')} style={s.card}>
+                <div style={{ width: '56px', height: '56px', borderRadius: '50%', flexShrink: 0, background: 'linear-gradient(135deg, #B07820, #EF9F27)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <PenLine size={24} color="white" strokeWidth={1.5} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: '0 0 2px', fontSize: '16px', fontWeight: '700', color: 'var(--color-text)' }}>Describe Materials</p>
+                  <p style={{ margin: '0 0 8px', fontSize: '13px', color: 'var(--color-text-2)' }}>Type or list the materials you have</p>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(239,159,39,0.10)', borderRadius: '8px', padding: '4px 10px' }}>
+                    <AlignLeft size={12} color="#EF9F27" />
+                    <span style={{ fontSize: '11px', color: '#EF9F27', fontWeight: '500' }}>Separate items with commas</span>
                   </div>
                 </div>
+                <ChevronRight size={20} color="var(--color-text-3)" />
               </div>
-            )}
+            </div>
 
-            {/* Selected Method Content */}
-            {selectedMethod === 'upload' && inputData.image && (
-              <div className="bg-surface border border-surface2 rounded-2xl p-6">
-                <h3 className="text-xl font-semibold text-text-primary mb-4">Uploaded Image</h3>
-                <img 
-                  src={inputData.image} 
-                  alt="Uploaded" 
-                  className="w-full max-w-md mx-auto rounded-lg mb-6"
-                />
-                <div className="flex gap-4 justify-center">
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
-                  >
-                    Re-upload
-                  </button>
-                  <button
-                    onClick={handleDetectMaterials}
-                    className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
-                  >
-                    Detect Materials
-                  </button>
-                </div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
+            {/* Info bar */}
+            <div style={{ backgroundColor: 'var(--color-surface)', borderRadius: '14px', padding: '14px 16px', border: '1px solid rgba(108,60,225,0.15)', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+              <Sparkles size={18} color="#6C3CE1" strokeWidth={1.5} style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div>
+                <p style={{ margin: '0 0 2px', fontSize: '13px', fontWeight: '600', color: '#6C3CE1' }}>We'll detect materials automatically</p>
+                <p style={{ margin: 0, fontSize: '12px', color: 'var(--color-text-2)' }}>You can review and edit the list in the next step.</p>
               </div>
-            )}
-
-            {selectedMethod === 'camera' && !inputData.image && (
-              <div className="bg-surface border border-surface2 rounded-2xl p-6">
-                <h3 className="text-xl font-semibold text-text-primary mb-4">Take a Photo</h3>
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  className="w-full max-w-md mx-auto rounded-lg mb-6"
-                />
-                <div className="flex gap-4 justify-center">
-                  <button
-                    onClick={stopCamera}
-                    className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={takePhoto}
-                    className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
-                  >
-                    Capture
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {selectedMethod === 'camera' && inputData.image && (
-              <div className="bg-surface border border-surface2 rounded-2xl p-6">
-                <h3 className="text-xl font-semibold text-text-primary mb-4">Captured Photo</h3>
-                <img 
-                  src={inputData.image} 
-                  alt="Captured" 
-                  className="w-full max-w-md mx-auto rounded-lg mb-6"
-                />
-                <div className="flex gap-4 justify-center">
-                  <button
-                    onClick={handleRetake}
-                    className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
-                  >
-                    Retake
-                  </button>
-                  <button
-                    onClick={handleDetectMaterials}
-                    className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
-                  >
-                    Detect Materials
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {selectedMethod === 'describe' && (
-              <div className="bg-surface border border-surface2 rounded-2xl p-6">
-                <h3 className="text-xl font-semibold text-text-primary mb-4">Describe Your Materials</h3>
-                <textarea
-                  value={inputData.description || ''}
-                  onChange={(e) => setInputData({ ...inputData, description: e.target.value, method: 'describe' })}
-                  placeholder="e.g. I have crimson acrylic paint, a flat brush, air dry clay and some canvas board..."
-                  className="w-full h-32 p-4 bg-background border border-surface2 rounded-lg text-text-primary placeholder-text-secondary resize-none focus:outline-none focus:border-primary mb-6"
-                />
-                <div className="flex gap-4 justify-center">
-                  <button
-                    onClick={backToSelection}
-                    className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
-                  >
-                    Back
-                  </button>
-                  <button
-                    onClick={handleDetectMaterials}
-                    disabled={!inputData.description?.trim()}
-                    className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Detect Materials
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {selectedMethod === 'quickscan' && isScanning && (
-              <div className="bg-surface border border-surface2 rounded-2xl p-6">
-                <h3 className="text-xl font-semibold text-text-primary mb-4">Quick Scanning...</h3>
-                <div className="relative">
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    className="w-full max-w-md mx-auto rounded-lg mb-6"
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="bg-black bg-opacity-50 rounded-lg p-4">
-                      <div className="text-white text-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
-                        <p>Scanning your materials...</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {selectedMethod === 'quickscan' && inputData.image && !isScanning && (
-              <div className="bg-surface border border-surface2 rounded-2xl p-6">
-                <h3 className="text-xl font-semibold text-text-primary mb-4">Quick Scan Complete</h3>
-                <img 
-                  src={inputData.image} 
-                  alt="Quick Scan" 
-                  className="w-full max-w-md mx-auto rounded-lg mb-6"
-                />
-                <div className="flex gap-4 justify-center">
-                  <button
-                    onClick={handleQuickScan}
-                    className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
-                  >
-                    Scan Again
-                  </button>
-                  <button
-                    onClick={handleDetectMaterials}
-                    className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
-                  >
-                    Detect Materials
-                  </button>
-                </div>
-              </div>
-            )}
+            </div>
           </>
         )}
 
-        {/* Detecting Screen */}
-        {currentScreen === 'detecting' && (
-          <div className="bg-surface border border-surface2 rounded-2xl p-12 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-6"></div>
-            <h3 className="text-2xl font-semibold text-text-primary mb-2">Analysing your materials...</h3>
-            <p className="text-text-secondary">This usually takes a few seconds</p>
+        {/* 4A: UPLOADED IMAGE */}
+        {currentScreen === 'selection' && selectedMethod === 'upload' && inputData.image && (
+          <>
+            <h1 style={s.heading}>What do you have?</h1>
+            <p style={{ ...s.subheading, marginBottom: '16px' }}>Show us your materials and we'll spark your creativity</p>
+            <div style={{ backgroundColor: 'var(--color-surface)', borderRadius: '16px', padding: '16px', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--color-text)' }}>Uploaded Image</span>
+                <button onClick={() => fileInputRef.current?.click()} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'var(--color-bg)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '12px', color: 'var(--color-text-2)' }}>
+                  <PenLine size={12} color="var(--color-text-2)" /> Change
+                </button>
+              </div>
+              <img src={inputData.image} alt="Uploaded" style={{ width: '100%', borderRadius: '12px', objectFit: 'cover', maxHeight: '280px' }} />
+            </div>
+            <div style={{ backgroundColor: 'var(--color-surface)', borderRadius: '12px', padding: '12px 14px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <Sparkles size={16} color="#6C3CE1" />
+              <span style={{ fontSize: '13px', color: 'var(--color-text-2)' }}>We'll detect the materials in your image automatically.</span>
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={() => fileInputRef.current?.click()} style={{ ...s.outlineBtn, flex: 1 }}>
+                <RefreshCw size={16} color="var(--color-text)" /> Re-upload
+              </button>
+              <button onClick={handleDetectMaterials} style={{ ...s.gradBtn, flex: 2, height: '48px', fontSize: '14px' }}>
+                <Sparkles size={16} color="white" /> Detect Materials
+              </button>
+            </div>
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
+          </>
+        )}
+
+        {/* CAMERA - live */}
+        {currentScreen === 'selection' && selectedMethod === 'camera' && !inputData.image && (
+          <div style={{ backgroundColor: 'var(--color-surface)', borderRadius: '16px', padding: '16px' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '700', color: 'var(--color-text)', marginBottom: '12px' }}>Take a Photo</h3>
+            <video ref={videoRef} autoPlay playsInline style={{ width: '100%', borderRadius: '12px', marginBottom: '16px' }} />
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={stopCamera} style={{ ...s.outlineBtn, flex: 1, backgroundColor: 'var(--color-bg)' }}>Cancel</button>
+              <button onClick={takePhoto} style={{ ...s.gradBtn, flex: 2, height: '48px', fontSize: '14px' }}>Capture</button>
+            </div>
           </div>
         )}
 
-        {/* Confirmation Screen */}
+        {/* CAMERA - captured */}
+        {currentScreen === 'selection' && selectedMethod === 'camera' && inputData.image && (
+          <>
+            <div style={{ backgroundColor: 'var(--color-surface)', borderRadius: '16px', padding: '16px', marginBottom: '12px' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--color-text)', marginBottom: '12px' }}>Captured Photo</h3>
+              <img src={inputData.image} alt="Captured" style={{ width: '100%', borderRadius: '12px', maxHeight: '280px', objectFit: 'cover' }} />
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={handleRetake} style={{ ...s.outlineBtn, flex: 1 }}>
+                <RefreshCw size={16} color="var(--color-text)" /> Retake
+              </button>
+              <button onClick={handleDetectMaterials} style={{ ...s.gradBtn, flex: 2, height: '48px', fontSize: '14px' }}>
+                <Sparkles size={16} color="white" /> Detect Materials
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* 4B: DESCRIBE */}
+        {currentScreen === 'selection' && selectedMethod === 'describe' && (
+          <>
+            <h1 style={s.heading}>What do you have?</h1>
+            <p style={{ ...s.subheading, marginBottom: '16px' }}>Show us your materials and we'll spark your creativity</p>
+
+            {/* Tab switcher */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+              {[
+                { id: 'upload', label: 'Upload Photos', icon: <Image size={14} color="var(--color-text-3)" /> },
+                { id: 'camera', label: 'Take Photo', icon: <Camera size={14} color="var(--color-text-3)" /> },
+                { id: 'describe', label: 'Describe', icon: <PenLine size={14} color="#6C3CE1" /> },
+              ].map((tab) => (
+                <button key={tab.id} onClick={() => {
+                  if (tab.id === 'upload') fileInputRef.current?.click()
+                  else if (tab.id === 'camera') handleCameraCapture()
+                  else setSelectedMethod('describe')
+                }} style={{
+                  flex: 1, padding: '10px 6px',
+                  backgroundColor: tab.id === 'describe' ? 'var(--color-surface)' : 'transparent',
+                  border: tab.id === 'describe' ? '1.5px solid #6C3CE1' : '1.5px solid rgba(255,255,255,0.08)',
+                  borderRadius: '12px', cursor: 'pointer',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
+                }}>
+                  {tab.icon}
+                  <span style={{ fontSize: '11px', fontWeight: '600', color: tab.id === 'describe' ? '#6C3CE1' : 'var(--color-text-3)' }}>{tab.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <div style={{ backgroundColor: 'var(--color-surface)', borderRadius: '16px', padding: '16px', marginBottom: '12px' }}>
+              <p style={{ margin: '0 0 4px', fontSize: '14px', fontWeight: '600', color: 'var(--color-text)' }}>Describe your materials</p>
+              <p style={{ margin: '0 0 10px', fontSize: '12px', color: 'var(--color-text-2)' }}>Type or list the art supplies you have</p>
+              <textarea
+                value={inputData.description || ''}
+                onChange={(e) => setInputData({ ...inputData, description: e.target.value, method: 'describe' })}
+                placeholder="Example: Watercolors, paintbrushes, canvas, sketchbook, colored pencils..."
+                style={{ width: '100%', minHeight: '120px', padding: '12px', backgroundColor: 'var(--color-bg)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'var(--color-text)', fontSize: '14px', lineHeight: '1.5', resize: 'none', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+              />
+              <div style={{ textAlign: 'right', fontSize: '11px', color: 'var(--color-text-3)', marginTop: '4px' }}>
+                {(inputData.description || '').length} / 500
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <p style={{ fontSize: '12px', color: 'var(--color-text-3)', marginBottom: '8px' }}>Try these examples</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {['Watercolors, brushes, paper', 'Acrylic paints, canvas, palette', 'Sketchbook, pencils, markers'].map((chip) => (
+                  <button key={chip} onClick={() => setInputData({ ...inputData, description: chip, method: 'describe' })} style={{ padding: '6px 12px', backgroundColor: 'var(--color-surface)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '99px', color: 'var(--color-text-2)', fontSize: '12px', cursor: 'pointer' }}>
+                    {chip}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ backgroundColor: 'var(--color-surface)', borderRadius: '12px', padding: '12px 14px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <Sparkles size={16} color="#6C3CE1" />
+              <span style={{ fontSize: '12px', color: 'var(--color-text-2)' }}>We'll identify your materials and suggest ideas just for you.</span>
+            </div>
+
+            <button onClick={handleDetectMaterials} disabled={!inputData.description?.trim()} style={{ ...s.gradBtn, opacity: inputData.description?.trim() ? 1 : 0.5, cursor: inputData.description?.trim() ? 'pointer' : 'not-allowed' }}>
+              <Sparkles size={18} color="white" /> Detect Materials
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
+          </>
+        )}
+
+        {/* DETECTING */}
+        {currentScreen === 'detecting' && (
+          <div style={{ backgroundColor: 'var(--color-surface)', borderRadius: '20px', padding: '48px 24px', textAlign: 'center' }}>
+            <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'linear-gradient(135deg, #6C3CE1, #FF3D71)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', animation: 'spin 1s linear infinite' }}>
+              <Sparkles size={24} color="white" />
+            </div>
+            <h3 style={{ fontSize: '20px', fontWeight: '700', color: 'var(--color-text)', marginBottom: '8px' }}>Analysing your materials...</h3>
+            <p style={{ fontSize: '14px', color: 'var(--color-text-2)', margin: 0 }}>This usually takes a few seconds</p>
+          </div>
+        )}
+
+        {/* CONFIRMATION */}
         {currentScreen === 'confirmation' && (
-          <div className="bg-surface border border-surface2 rounded-2xl p-6">
-            <h3 className="text-2xl font-semibold text-text-primary mb-6">We found these materials</h3>
-            
-            {/* Material Chips */}
-            <div className="flex flex-wrap gap-3 mb-6">
+          <div style={{ backgroundColor: 'var(--color-surface)', borderRadius: '20px', padding: '20px' }}>
+            <h3 style={{ fontSize: '20px', fontWeight: '700', color: 'var(--color-text)', marginBottom: '16px' }}>We found these materials</h3>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
               {detectedMaterials.map((material, index) => (
-                <div
-                  key={index}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary/20 to-secondary/20 border border-primary/30 rounded-full"
-                >
-                  <span className="text-text-primary">{material.name}</span>
-                  <button
-                    onClick={() => removeMaterial(index)}
-                    className="text-text-secondary hover:text-text-primary transition-colors"
-                  >
-                    <X size={16} />
+                <div key={index} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: 'rgba(108,60,225,0.12)', border: '1px solid rgba(108,60,225,0.25)', borderRadius: '99px' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--color-text)' }}>{material.name}</span>
+                  <button onClick={() => removeMaterial(index)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                    <X size={14} color="var(--color-text-3)" />
                   </button>
                 </div>
               ))}
             </div>
-
-            {/* Add Material Input */}
-            <div className="flex gap-3 mb-8">
-              <input
-                type="text"
-                value={manualMaterial}
-                onChange={(e) => setManualMaterial(e.target.value)}
-                placeholder="Add material..."
-                className="flex-1 px-4 py-2 bg-background border border-surface2 rounded-lg text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary"
-                onKeyPress={(e) => e.key === 'Enter' && addManualMaterial()}
-              />
-              <button
-                onClick={addManualMaterial}
-                disabled={!manualMaterial.trim()}
-                className="px-4 py-2 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Plus size={20} />
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+              <input type="text" value={manualMaterial} onChange={(e) => setManualMaterial(e.target.value)} placeholder="Add material..." onKeyPress={(e) => e.key === 'Enter' && addManualMaterial()} style={{ flex: 1, padding: '10px 14px', backgroundColor: 'var(--color-bg)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'var(--color-text)', fontSize: '14px', outline: 'none', fontFamily: 'inherit' }} />
+              <button onClick={addManualMaterial} disabled={!manualMaterial.trim()} style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, #6C3CE1, #FF3D71)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: manualMaterial.trim() ? 1 : 0.5 }}>
+                <Plus size={20} color="white" />
               </button>
             </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-4 justify-center">
-              <button
-                onClick={tryAgain}
-                className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
-              >
-                Try again
-              </button>
-              <button
-                onClick={confirmMaterials}
-                className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
-              >
-                Looks good!
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={tryAgain} style={{ flex: 1, height: '48px', backgroundColor: 'var(--color-bg)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', color: 'var(--color-text-2)', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Try again</button>
+              <button onClick={confirmMaterials} style={{ flex: 2, height: '48px', background: 'linear-gradient(90deg, #6C3CE1 0%, #FF3D71 100%)', border: 'none', borderRadius: '14px', color: 'white', fontSize: '14px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <Check size={16} color="white" /> Looks good!
               </button>
             </div>
           </div>
         )}
 
-        {/* Ideas Screen */}
+        {/* IDEAS */}
         {currentScreen === 'ideas' && (
-          <div className="bg-surface border border-surface2 rounded-2xl p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-semibold text-text-primary">Creative Ideas for You</h3>
-              <div className="flex gap-3">
-                {!showThemeInput ? (
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={themeInput}
-                      onChange={(e) => setThemeInput(e.target.value)}
-                      placeholder="e.g. calm, bold, nature..."
-                      className="flex-1 px-4 py-2 bg-background border border-surface2 rounded-lg text-text-primary placeholder-text-secondary focus:outline-none focus:border-primary"
-                    />
-                    <button
-                      onClick={() => generateIdeas(themeInput)}
-                      className="px-4 py-2 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
-                    >
-                      Apply Theme
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setShowThemeInput(true)}
-                    className="px-4 py-2 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
-                  >
-                    Inspire Me
-                  </button>
-                )}
+          <div style={{ backgroundColor: 'var(--color-surface)', borderRadius: '20px', padding: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '20px', fontWeight: '700', color: 'var(--color-text)', margin: 0 }}>Creative Ideas</h3>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input type="text" value={themeInput} onChange={(e) => setThemeInput(e.target.value)} placeholder="e.g. calm, bold..." style={{ padding: '8px 12px', backgroundColor: 'var(--color-bg)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', color: 'var(--color-text)', fontSize: '13px', outline: 'none', width: '120px', fontFamily: 'inherit' }} />
+                <button onClick={() => generateIdeas(themeInput)} style={{ padding: '8px 14px', background: 'linear-gradient(90deg, #6C3CE1, #FF3D71)', border: 'none', borderRadius: '10px', color: 'white', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>Apply</button>
               </div>
             </div>
-
             {ideas.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-text-secondary">Sparking your creativity...</p>
+              <div style={{ textAlign: 'center', padding: '48px 0' }}>
+                <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg, #6C3CE1, #FF3D71)', margin: '0 auto 16px', animation: 'spin 1s linear infinite', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Sparkles size={20} color="white" />
+                </div>
+                <p style={{ color: 'var(--color-text-2)', fontSize: '14px' }}>Sparking your creativity...</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {ideas.map((idea, index) => (
-                  <div key={index} className="bg-surface border border-surface2 rounded-xl p-6">
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex-1">
-                        <h4 className="text-lg font-semibold text-white">{idea.title}</h4>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          idea.difficulty === 'beginner' ? 'bg-green-500 text-white' :
-                          idea.difficulty === 'intermediate' ? 'bg-yellow-500 text-white' :
-                          'bg-red-500 text-white'
-                        }`}>
-                          {idea.difficulty}
-                        </span>
+                  <div key={index} style={{ backgroundColor: 'var(--color-bg)', borderRadius: '16px', overflow: 'hidden' }}>
+                    <img src={`https://picsum.photos/seed/${encodeURIComponent(idea.title)}/600/200`} alt={idea.title} style={{ width: '100%', height: '160px', objectFit: 'cover' }} onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                    <div style={{ padding: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                        <h4 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--color-text)', margin: 0, flex: 1 }}>{idea.title}</h4>
+                        <span style={{ padding: '3px 10px', borderRadius: '99px', fontSize: '11px', fontWeight: '600', backgroundColor: idea.difficulty === 'beginner' ? 'rgba(29,158,117,0.15)' : idea.difficulty === 'intermediate' ? 'rgba(239,159,39,0.15)' : 'rgba(255,61,113,0.15)', color: idea.difficulty === 'beginner' ? '#1D9E75' : idea.difficulty === 'intermediate' ? '#EF9F27' : '#FF3D71' }}>{idea.difficulty}</span>
+                        <span style={{ fontSize: '12px', color: 'var(--color-text-3)' }}>{idea.estimatedTime}</span>
                       </div>
-                      <div className="relative">
-                        <img 
-                          src={`https://picsum.photos/seed/${encodeURIComponent(idea.title)}/400/200`}
-                          alt={idea.title}
-                          className="w-full h-40 object-cover rounded-lg mb-3"
-                          style={{ borderRadius: '12px 12px 0 0' }}
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none'
-                          }}
-                        />
-                        <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs font-medium" style={{ borderRadius: '8px', padding: '2px 8px', fontSize: '11px' }}>
-                          Reference
-                        </div>
-                      </div>
-                    </div>
-                    <p className="text-text-secondary mb-3">{idea.description}</p>
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="text-sm text-text-secondary">{idea.estimatedTime}</span>
-                      <button
-                        onClick={() => setExpandedIdea(expandedIdea === index ? null : index)}
-                        className="text-primary hover:text-primary/80 transition-colors"
-                      >
+                      <p style={{ fontSize: '13px', color: 'var(--color-text-2)', margin: '0 0 12px', lineHeight: 1.5 }}>{idea.description}</p>
+                      <button onClick={() => setExpandedIdea(expandedIdea === index ? null : index)} style={{ background: 'none', border: 'none', color: '#6C3CE1', fontSize: '13px', fontWeight: '600', cursor: 'pointer', padding: 0, marginBottom: '12px' }}>
                         {expandedIdea === index ? 'Hide steps' : 'See steps'}
                       </button>
-                    </div>
-                    {expandedIdea === index && (
-                      <div className="bg-surface2 rounded-lg p-4 mt-3">
-                        <h5 className="font-medium text-text-primary mb-2">Steps:</h5>
-                        <ol className="list-decimal list-inside space-y-2">
-                          {idea.steps.map((step, stepIndex) => (
-                            <li key={stepIndex} className="text-text-secondary">{step}</li>
-                          ))}
+                      {expandedIdea === index && (
+                        <ol style={{ paddingLeft: '16px', margin: '0 0 12px' }}>
+                          {idea.steps.map((step, i) => <li key={i} style={{ fontSize: '13px', color: 'var(--color-text-2)', marginBottom: '4px' }}>{step}</li>)}
                         </ol>
-                      </div>
-                    )}
-                    <button
-                      onClick={() => {
-                        setSelectedIdea(idea)
-                        setCurrentScreen('palette')
-                        generatePalette()
-                      }}
-                      className="w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all mt-4"
-                    >
-                      Choose this idea
-                    </button>
+                      )}
+                      <button onClick={() => { setSelectedIdea(idea); setCurrentScreen('palette'); generatePalette() }} style={{ width: '100%', height: '44px', background: 'linear-gradient(90deg, #6C3CE1 0%, #FF3D71 100%)', border: 'none', borderRadius: '12px', color: 'white', fontSize: '14px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                        <Sparkles size={16} color="white" /> Start this project
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
-
-            <div className="flex gap-4 justify-center mt-8">
-              <button
-                onClick={tryAgain}
-                className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
-              >
-                Start over
-              </button>
-            </div>
+            <button onClick={tryAgain} style={{ width: '100%', marginTop: '16px', height: '44px', backgroundColor: 'var(--color-bg)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', color: 'var(--color-text-2)', fontSize: '14px', cursor: 'pointer' }}>Start over</button>
           </div>
         )}
 
-        {/* Palette Screen */}
+        {/* PALETTE */}
         {currentScreen === 'palette' && (
-          <div className="bg-surface border border-surface2 rounded-2xl p-6">
-            {/* Confirmation Banner */}
+          <div style={{ backgroundColor: 'var(--color-surface)', borderRadius: '20px', padding: '20px' }}>
             {selectedIdea && (
-              <div className="bg-gradient-to-r from-purple-500/10 to-violet-500/10 border border-purple-500/20 rounded-lg p-4 mb-6">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                    <p className="text-text-primary">
-                      Creating based on: <span className="font-semibold">{selectedIdea.title}</span>
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setSelectedIdea(null)
-                      setCurrentScreen('ideas')
-                    }}
-                    className="text-purple-500 hover:text-purple-600 text-sm font-medium transition-colors"
-                  >
-                    Change
-                  </button>
+              <div style={{ background: 'rgba(108,60,225,0.08)', border: '1px solid rgba(108,60,225,0.2)', borderRadius: '12px', padding: '12px 14px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#6C3CE1' }} />
+                  <span style={{ fontSize: '13px', color: 'var(--color-text)' }}>Creating: <strong>{selectedIdea.title}</strong></span>
                 </div>
+                <button onClick={() => { setSelectedIdea(null); setCurrentScreen('ideas') }} style={{ background: 'none', border: 'none', color: '#6C3CE1', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>Change</button>
               </div>
             )}
-
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-semibold text-text-primary">
-                {selectedIdea ? `Colour Palette for ${selectedIdea.title}` : 'Your Color Palette'}
-              </h3>
-            </div>
-
-            {/* Colour Extraction Display */}
+            <h3 style={{ fontSize: '20px', fontWeight: '700', color: 'var(--color-text)', marginBottom: '16px' }}>
+              {selectedIdea ? `Palette for ${selectedIdea.title}` : 'Your Colour Palette'}
+            </h3>
             {selectedIdea && (
-              <div className="bg-surface2 rounded-xl p-6">
-                <h4 className="text-lg font-semibold text-text-primary mb-4">Colours from your inspiration</h4>
-                
-                <div className="flex gap-6 items-start">
-                  {/* Reference Image */}
-                  <div className="flex-shrink-0">
-                    <img 
-                      src={`https://picsum.photos/seed/${encodeURIComponent(selectedIdea.title)}/120/80`}
-                      alt={selectedIdea.title}
-                      className="w-30 h-20 rounded-lg object-cover"
-                      style={{ width: '120px', height: '80px' }}
-                    />
-                  </div>
-                  
-                  {/* Colour Swatches */}
-                  <div className="flex-1">
+              <div style={{ backgroundColor: 'var(--color-bg)', borderRadius: '16px', padding: '16px' }}>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                  <img src={`https://picsum.photos/seed/${encodeURIComponent(selectedIdea.title)}/120/80`} alt={selectedIdea.title} style={{ width: '100px', height: '70px', borderRadius: '10px', objectFit: 'cover', flexShrink: 0 }} />
+                  <div style={{ flex: 1 }}>
                     {colourMatches.length === 0 ? (
-                      <div className="text-center py-8">
-                        {filterColourMaterials(detectedMaterials).length === 0 ? (
-                          <>
-                            <div className="text-text-secondary mb-3">
-                              No colour materials detected — add paints or pigments to see a palette
-                            </div>
-                            <button
-                              onClick={() => setCurrentScreen('ideas')}
-                              className="px-4 py-2 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
-                            >
-                              Back to materials
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-3"></div>
-                            <p className="text-text-secondary text-sm">Generating palette...</p>
-                          </>
-                        )}
-                      </div>
+                      filterColourMaterials(detectedMaterials).length === 0 ? (
+                        <p style={{ fontSize: '13px', color: 'var(--color-text-2)' }}>No colour materials detected.</p>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+                          <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'linear-gradient(135deg, #6C3CE1, #FF3D71)', animation: 'spin 1s linear infinite' }} />
+                          <span style={{ fontSize: '13px', color: 'var(--color-text-2)' }}>Generating palette...</span>
+                        </div>
+                      )
                     ) : (
                       <>
-                        <div className="flex flex-wrap gap-3 mb-4">
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
                           {colourMatches.map((match, index) => (
-                            <div key={index} className="relative group">
-                              <div 
-                                className="w-12 h-12 rounded-full border-2 border-surface3 transition-all"
-                                style={{ 
-                                  backgroundColor: match.hex,
-                                  ...(match.status === 'need' ? { 
-                                    borderStyle: 'dashed',
-                                    opacity: 0.7 
-                                  } : {})
-                                }}
-                                title={match.matchedMaterial ? `You have: ${match.matchedMaterial}` : match.name}
-                              />
-                              
-                              {/* Badge */}
-                              <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
-                                match.status === 'have' 
-                                  ? 'bg-green-500 text-white' 
-                                  : 'bg-purple-500 text-white'
-                              }`}>
+                            <div key={index} style={{ position: 'relative' }}>
+                              <div style={{ width: '44px', height: '44px', borderRadius: '50%', backgroundColor: match.hex, border: '2px solid rgba(255,255,255,0.1)' }} title={match.name} />
+                              <div style={{ position: 'absolute', top: '-4px', right: '-4px', width: '18px', height: '18px', borderRadius: '50%', backgroundColor: match.status === 'have' ? '#1D9E75' : '#6C3CE1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: 'white', fontWeight: '700' }}>
                                 {match.status === 'have' ? '✓' : '+'}
                               </div>
-                              
-                              {/* Tooltip */}
-                              {match.matchedMaterial && (
-                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                                  {match.matchedMaterial}
-                                </div>
-                              )}
                             </div>
                           ))}
                         </div>
-                        
-                        {/* Legend */}
-                        <div className="flex items-center gap-4 text-sm text-text-secondary">
-                          <div className="flex items-center gap-1">
-                            <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
-                              <span className="text-white text-xs">✓</span>
-                            </div>
-                            <span>You have this</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <div className="w-4 h-4 rounded-full bg-purple-500 flex items-center justify-center">
-                              <span className="text-white text-xs">+</span>
-                            </div>
-                            <span>Add to your kit</span>
-                          </div>
+                        <div style={{ display: 'flex', gap: '12px', fontSize: '12px', color: 'var(--color-text-3)' }}>
+                          <span>✓ You have this</span><span>+ Add to kit</span>
                         </div>
                       </>
                     )}
@@ -968,210 +603,73 @@ export default function Create() {
                 </div>
               </div>
             )}
-
-            <div className="flex gap-4 justify-center mt-8">
-              <button
-                onClick={() => generatePalette()}
-                className="px-6 py-3 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all"
-              >
-                Mixing Guide
-              </button>
-              <button
-                onClick={() => generateKit(selectedCountry || 'US')}
-                className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
-              >
-                Build My Kit
-              </button>
-              <button
-                onClick={tryAgain}
-                className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
-              >
-                Start over
-              </button>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+              <button onClick={() => generatePalette()} style={{ flex: 1, height: '48px', background: 'linear-gradient(90deg, #6C3CE1, #FF3D71)', border: 'none', borderRadius: '14px', color: 'white', fontSize: '14px', fontWeight: '700', cursor: 'pointer' }}>Mixing Guide</button>
+              <button onClick={tryAgain} style={{ flex: 1, height: '48px', backgroundColor: 'var(--color-bg)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', color: 'var(--color-text-2)', fontSize: '14px', cursor: 'pointer' }}>Start over</button>
             </div>
           </div>
         )}
 
-        {/* Kit Screen */}
+        {/* KIT */}
         {currentScreen === 'kit' && (
-          <div className="bg-surface border border-surface2 rounded-2xl p-6">
-            {/* Confirmation Banner */}
-            {selectedIdea && (
-              <div className="bg-gradient-to-r from-purple-500/10 to-violet-500/10 border border-purple-500/20 rounded-lg p-4 mb-6">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                    <p className="text-text-primary">
-                      Creating based on: <span className="font-semibold">{selectedIdea.title}</span>
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setSelectedIdea(null)
-                      setCurrentScreen('ideas')
-                    }}
-                    className="text-purple-500 hover:text-purple-600 text-sm font-medium transition-colors"
-                  >
-                    Change
-                  </button>
-                </div>
-              </div>
-            )}
-            
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-semibold text-text-primary">
-                {selectedIdea ? `Your Kit for ${selectedIdea.title}` : 'Your Art Kit'}
-              </h3>
-              <div className="text-sm text-text-secondary">
-                Based on your materials in {selectedCountry || 'your location'}
-              </div>
-            </div>
-
+          <div style={{ backgroundColor: 'var(--color-surface)', borderRadius: '20px', padding: '20px' }}>
+            <h3 style={{ fontSize: '20px', fontWeight: '700', color: 'var(--color-text)', marginBottom: '16px' }}>
+              {selectedIdea ? `Your Kit for ${selectedIdea.title}` : 'Your Art Kit'}
+            </h3>
             {kit === null ? (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-text-secondary">Building your kit...</p>
+              <div style={{ textAlign: 'center', padding: '48px 0' }}>
+                <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg, #6C3CE1, #FF3D71)', margin: '0 auto 16px', animation: 'spin 1s linear infinite' }} />
+                <p style={{ color: 'var(--color-text-2)', fontSize: '14px' }}>Building your kit...</p>
               </div>
             ) : (
-              <div className="space-y-6">
-                {/* Essentials Section */}
-                <div className="bg-surface2 rounded-xl p-6">
-                  <h4 className="text-lg font-semibold text-white mb-4">Essentials</h4>
-                  <div className="space-y-3">
-                    {kit.essentials.map((item, index) => (
-                      <div key={index} className="bg-surface rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <h5 className="font-medium text-text-primary">{item.item}</h5>
-                          <p className="text-sm text-text-secondary mb-2">{item.reason}</p>
-                          <span className="text-sm font-medium text-primary">{item.estimatedPrice}</span>
-                        </div>
-                        {item.localAlternative && (
-                          <p className="text-xs text-text-secondary">Local alternative: {item.localAlternative}</p>
-                        )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ backgroundColor: 'var(--color-bg)', borderRadius: '14px', padding: '16px' }}>
+                  <h4 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--color-text)', marginBottom: '12px' }}>Essentials</h4>
+                  {kit.essentials.map((item, index) => (
+                    <div key={index} style={{ marginBottom: '10px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-text)' }}>{item.item}</span>
+                        <span style={{ fontSize: '13px', color: '#6C3CE1', fontWeight: '600' }}>{item.estimatedPrice}</span>
                       </div>
-                    ))}
-                  </div>
+                      <p style={{ fontSize: '12px', color: 'var(--color-text-2)', margin: '2px 0 0' }}>{item.reason}</p>
+                    </div>
+                  ))}
                 </div>
-
-                {/* Nice to Have Section */}
-                <div className="bg-surface2 rounded-xl p-6">
-                  <h4 className="text-lg font-semibold text-white mb-4">Nice to Have</h4>
-                  <div className="space-y-3">
-                    {kit.niceToHave.map((item, index) => (
-                      <div key={index} className="bg-surface rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <h5 className="font-medium text-text-primary">{item.item}</h5>
-                          <p className="text-sm text-text-secondary mb-2">{item.reason}</p>
-                          <span className="text-sm font-medium text-primary">{item.estimatedPrice}</span>
-                        </div>
-                        {item.localAlternative && (
-                          <p className="text-xs text-text-secondary">Local alternative: {item.localAlternative}</p>
-                        )}
+                <div style={{ backgroundColor: 'var(--color-bg)', borderRadius: '14px', padding: '16px' }}>
+                  <h4 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--color-text)', marginBottom: '12px' }}>Nice to Have</h4>
+                  {kit.niceToHave.map((item, index) => (
+                    <div key={index} style={{ marginBottom: '10px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-text)' }}>{item.item}</span>
+                        <span style={{ fontSize: '13px', color: '#6C3CE1', fontWeight: '600' }}>{item.estimatedPrice}</span>
                       </div>
-                    ))}
-                  </div>
+                      <p style={{ fontSize: '12px', color: 'var(--color-text-2)', margin: '2px 0 0' }}>{item.reason}</p>
+                    </div>
+                  ))}
                 </div>
-
-                {/* Total Cost */}
-                <div className="bg-surface2 rounded-xl p-6">
-                  <h4 className="text-lg font-semibold text-white mb-2">Total Estimated Cost</h4>
-                  <p className="text-2xl font-bold text-primary">{kit.totalEstimatedCost}</p>
-                </div>
-
-                <div className="flex gap-4 justify-center mt-8">
+                <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
                   {detectedMaterials.length > 0 && (
-                    <button
-                      onClick={loadMaterialInsights}
-                      disabled={loadingInsights}
-                      className="px-6 py-3 bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-lg hover:shadow-lg hover:shadow-purple-500/25 transition-all flex items-center gap-2 disabled:opacity-50"
-                    >
-                      <BookOpen className="w-4 h-4" />
-                      {loadingInsights ? 'Analysing your materials...' : 'View Material Insights'}
+                    <button onClick={loadMaterialInsights} disabled={loadingInsights} style={{ flex: 1, height: '48px', background: 'linear-gradient(90deg, #6C3CE1, #FF3D71)', border: 'none', borderRadius: '14px', color: 'white', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', opacity: loadingInsights ? 0.7 : 1 }}>
+                      <BookOpen size={16} color="white" /> {loadingInsights ? 'Loading...' : 'Insights'}
                     </button>
                   )}
-                  <button
-                    onClick={() => {
-                      alert('Coming in Step 14: Export Kit functionality!')
-                    }}
-                    className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
-                  >
-                    Export Kit
-                  </button>
-                  <button
-                    onClick={tryAgain}
-                    className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
-                  >
-                    Start over
-                  </button>
+                  <button onClick={tryAgain} style={{ flex: 1, height: '48px', backgroundColor: 'var(--color-bg)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', color: 'var(--color-text-2)', fontSize: '14px', cursor: 'pointer' }}>Start over</button>
                 </div>
-
-                {/* Material Insights Cards */}
                 {materialInsights.length > 0 && (
-                  <div className="mt-8 space-y-3">
-                    <h4 className="text-lg font-semibold text-white mb-4">Material Insights</h4>
+                  <div style={{ marginTop: '8px' }}>
+                    <h4 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--color-text)', marginBottom: '12px' }}>Material Insights</h4>
                     {materialInsights.map((insight, index) => (
-                      <div key={index} className="bg-[#1A1A2E] rounded-xl p-4 mb-3">
-                        <button
-                          onClick={() => toggleCard(index)}
-                          className="w-full flex justify-between items-center text-left"
-                        >
-                          <h5 className="text-white font-medium">{insight.material}</h5>
-                          {expandedCards.has(index) ? (
-                            <ChevronUp className="w-5 h-5 text-white" />
-                          ) : (
-                            <ChevronDown className="w-5 h-5 text-white" />
-                          )}
+                      <div key={index} style={{ backgroundColor: 'var(--color-bg)', borderRadius: '12px', padding: '14px', marginBottom: '8px' }}>
+                        <button onClick={() => toggleCard(index)} style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                          <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--color-text)' }}>{insight.material}</span>
+                          {expandedCards.has(index) ? <ChevronUp size={18} color="var(--color-text-2)" /> : <ChevronDown size={18} color="var(--color-text-2)" />}
                         </button>
-                        
                         {expandedCards.has(index) && (
-                          <div className="mt-4 space-y-4">
-                            {insight.tips && insight.tips.length > 0 && (
-                              <div>
-                                <h6 className="text-sm font-medium text-white mb-2">Tips</h6>
-                                <ul className="list-disc list-inside space-y-1">
-                                  {insight.tips.map((tip: string, tipIndex: number) => (
-                                    <li key={tipIndex} className="text-sm" style={{ color: '#6C3CE1' }}>
-                                      {tip}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                            
-                            {insight.careInstructions && insight.careInstructions.length > 0 && (
-                              <div>
-                                <h6 className="text-sm font-medium text-white mb-2">Care Instructions</h6>
-                                <ul className="list-disc list-inside space-y-1">
-                                  {insight.careInstructions.map((instruction: string, instructionIndex: number) => (
-                                    <li key={instructionIndex} className="text-sm" style={{ color: '#3D9BE9' }}>
-                                      {instruction}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                            
-                            {insight.commonMistakes && insight.commonMistakes.length > 0 && (
-                              <div>
-                                <h6 className="text-sm font-medium text-white mb-2">Common Mistakes</h6>
-                                <ul className="list-disc list-inside space-y-1">
-                                  {insight.commonMistakes.map((mistake: string, mistakeIndex: number) => (
-                                    <li key={mistakeIndex} className="text-sm" style={{ color: '#FF3D71' }}>
-                                      {mistake}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                            
-                            {insight.shelfLife && (
-                              <div>
-                                <h6 className="text-sm font-medium text-white mb-2">Shelf Life</h6>
-                                <p className="text-sm" style={{ color: '#A0A0C0' }}>
-                                  {insight.shelfLife}
-                                </p>
-                              </div>
-                            )}
+                          <div style={{ marginTop: '12px' }}>
+                            {insight.tips?.length > 0 && <div style={{ marginBottom: '8px' }}><p style={{ fontSize: '12px', fontWeight: '600', color: 'var(--color-text)', marginBottom: '4px' }}>Tips</p>{insight.tips.map((tip: string, i: number) => <p key={i} style={{ fontSize: '12px', color: '#6C3CE1', margin: '2px 0' }}>• {tip}</p>)}</div>}
+                            {insight.careInstructions?.length > 0 && <div style={{ marginBottom: '8px' }}><p style={{ fontSize: '12px', fontWeight: '600', color: 'var(--color-text)', marginBottom: '4px' }}>Care</p>{insight.careInstructions.map((c: string, i: number) => <p key={i} style={{ fontSize: '12px', color: 'var(--color-text-2)', margin: '2px 0' }}>• {c}</p>)}</div>}
+                            {insight.commonMistakes?.length > 0 && <div><p style={{ fontSize: '12px', fontWeight: '600', color: 'var(--color-text)', marginBottom: '4px' }}>Common Mistakes</p>{insight.commonMistakes.map((m: string, i: number) => <p key={i} style={{ fontSize: '12px', color: '#FF3D71', margin: '2px 0' }}>• {m}</p>)}</div>}
                           </div>
                         )}
                       </div>
@@ -1183,46 +681,22 @@ export default function Create() {
           </div>
         )}
 
-        {/* Error Screen */}
+        {/* ERROR */}
         {currentScreen === 'error' && (
-          <div className="bg-surface border border-surface2 rounded-2xl p-6 text-center">
-            <div className="text-4xl mb-4">â ï¸</div>
-            <h3 className="text-xl font-semibold text-text-primary mb-2">
+          <div style={{ backgroundColor: 'var(--color-surface)', borderRadius: '20px', padding: '32px 24px', textAlign: 'center' }}>
+            <h3 style={{ fontSize: '20px', fontWeight: '700', color: 'var(--color-text)', marginBottom: '8px' }}>
               {error === 'No materials detected' ? 'No materials found' : 'Something went wrong'}
             </h3>
-            <p className="text-text-secondary mb-6">
-              {error === 'No materials detected' 
-                ? "We couldn't detect any materials. Try a clearer photo or describe your materials instead."
-                : error
-              }
+            <p style={{ fontSize: '14px', color: 'var(--color-text-2)', marginBottom: '24px' }}>
+              {error === 'No materials detected' ? "We couldn't detect any materials. Try a clearer photo or describe your materials instead." : error}
             </p>
-            <div className="flex gap-4 justify-center">
-              {error === 'No materials detected' ? (
-                <button
-                  onClick={tryAgain}
-                  className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
-                >
-                  Try again
-                </button>
-              ) : (
-                <>
-                  <button
-                    onClick={backToSelection}
-                    className="px-6 py-3 bg-surface2 text-text-primary rounded-lg hover:bg-surface3 transition-colors"
-                  >
-                    Back to selection
-                  </button>
-                  <button
-                    onClick={tryAgain}
-                    className="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg hover:shadow-primary/25 transition-all"
-                  >
-                    Try again
-                  </button>
-                </>
-              )}
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <button onClick={backToSelection} style={{ padding: '12px 20px', backgroundColor: 'var(--color-bg)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', color: 'var(--color-text-2)', fontSize: '14px', cursor: 'pointer' }}>Back</button>
+              <button onClick={tryAgain} style={{ padding: '12px 20px', background: 'linear-gradient(90deg, #6C3CE1, #FF3D71)', border: 'none', borderRadius: '14px', color: 'white', fontSize: '14px', fontWeight: '700', cursor: 'pointer' }}>Try again</button>
             </div>
           </div>
         )}
+
       </div>
     </div>
   )
