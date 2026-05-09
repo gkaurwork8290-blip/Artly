@@ -17,12 +17,6 @@ function AppContent() {
   )
 
   
-  // If onboarding is not complete, redirect to /onboarding
-  if (!onboardingComplete && location.pathname !== '/onboarding') {
-    return <Navigate to="/onboarding" replace />
-  }
-
-  // If onboarding is complete and user is on root, redirect to /create
   if (onboardingComplete && location.pathname === '/') {
     return <Navigate to="/create" replace />
   }
