@@ -3,10 +3,9 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Smile, SmilePlus, Meh, Frown, ImagePlus, Camera,
-  Sparkles, Star, Check
+  Sparkles, Star, Check, BookOpen
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { supabase } from '../lib/supabase'
 
 const MOODS = [
   { id: 'proud',      label: 'Proud',      Icon: SmilePlus, color: '#1D9E75', bg: 'rgba(29,158,117,0.12)',  border: '#1D9E75' },
@@ -25,7 +24,7 @@ const PROMPTS = [
 
 export default function Journal() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, signInWithGoogle } = useAuth()
   const textareaRef = useRef(null)
   const fileInputRef = useRef(null)
   const videoRef = useRef(null)
@@ -51,16 +50,13 @@ export default function Journal() {
 
   const hasContent = mood || text.trim() || rating > 0
 
-  // ── Camera ──
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
       streamRef.current = stream
       if (videoRef.current) videoRef.current.srcObject = stream
       setShowCamera(true)
-    } catch {
-      alert('Camera access denied.')
-    }
+    } catch { alert('Camera access denied.') }
   }
   const capturePhoto = () => {
     if (!videoRef.current) return
@@ -76,8 +72,6 @@ export default function Journal() {
     streamRef.current = null
     setShowCamera(false)
   }
-
-  // ── File upload ──
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -85,8 +79,6 @@ export default function Journal() {
     reader.onload = ev => setArtworkImage(ev.target?.result)
     reader.readAsDataURL(file)
   }
-
-  // ── Prompt chips ──
   const appendPrompt = (prompt) => {
     const prefix = text.trim() ? text.trimEnd() + '\n' : ''
     setText(prefix + prompt + ' ')
@@ -98,34 +90,19 @@ export default function Journal() {
     }, 50)
   }
 
-  // ── Save ──
   const handleSave = async () => {
     if (!hasContent) return
     setSaving(true)
     const entry = {
-      mood,
-      text: text.trim(),
-      rating,
+      mood, text: text.trim(), rating,
       idea_title: activeIdea?.title || null,
       artwork_image: artworkImage || null,
       created_at: new Date().toISOString(),
     }
     try {
-      if (user) {
-        await supabase.from('journal_entries').insert({
-          user_id: user.id,
-          mood: entry.mood,
-          notes: entry.text,
-          rating: entry.rating,
-          idea_title: entry.idea_title,
-          created_at: entry.created_at,
-        })
-      }
-      // Always save to localStorage
       const existing = JSON.parse(localStorage.getItem('artly_journal_entries') || '[]')
       localStorage.setItem('artly_journal_entries', JSON.stringify([entry, ...existing]))
       if (!user) {
-        // Guest — show nudge before navigating
         setShowNudge(true)
       } else {
         setSaved(true)
@@ -154,14 +131,14 @@ export default function Journal() {
     <div style={{ minHeight: '100dvh', background: 'var(--color-bg)', paddingBottom: 100 }}>
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '20px 16px' }}>
 
-        {/* ── Progress dots ── */}
+        {/* Progress dots */}
         <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 20 }}>
           {[0,1,2].map(i => (
             <div key={i} style={{ height: 4, borderRadius: 2, background: '#6C3CE1', width: i === 2 ? 16 : 24 }} />
           ))}
         </div>
 
-        {/* ── Header ── */}
+        {/* Header */}
         <div style={{ marginBottom: 28 }}>
           <h1 style={{ fontSize: 'clamp(28px,6vw,36px)', fontWeight: 800, margin: '0 0 8px', background: 'linear-gradient(90deg,#6C3CE1,#FF3D71)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
             Journal
@@ -175,18 +152,14 @@ export default function Journal() {
           )}
         </div>
 
-        {/* ── Mood picker ── */}
+        {/* Mood picker */}
         <div style={{ marginBottom: 28 }}>
           <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 12px' }}>How did it feel?</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {MOODS.map(({ id, label, Icon, color, bg, border }) => {
               const isSelected = mood === id
               return (
-                <button
-                  key={id}
-                  onClick={() => setMood(isSelected ? null : id)}
-                  style={{ background: isSelected ? bg : 'var(--color-surface)', border: `1.5px solid ${isSelected ? border : 'rgba(255,255,255,0.06)'}`, borderRadius: 16, padding: '16px 12px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, transition: 'all 0.2s' }}
-                >
+                <button key={id} onClick={() => setMood(isSelected ? null : id)} style={{ background: isSelected ? bg : 'var(--color-surface)', border: `1.5px solid ${isSelected ? border : 'rgba(255,255,255,0.06)'}`, borderRadius: 16, padding: '16px 12px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
                   <Icon size={28} color={isSelected ? color : 'var(--color-text-3)'} strokeWidth={1.5} />
                   <span style={{ fontSize: 13, fontWeight: 700, color: isSelected ? color : 'var(--color-text-2)' }}>{label}</span>
                 </button>
@@ -195,10 +168,9 @@ export default function Journal() {
           </div>
         </div>
 
-        {/* ── Add artwork ── */}
+        {/* Add artwork */}
         <div style={{ marginBottom: 28 }}>
           <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 12px' }}>Add your artwork</p>
-
           {showCamera ? (
             <div style={{ background: 'var(--color-surface)', borderRadius: 16, padding: 16 }}>
               <video ref={videoRef} autoPlay playsInline style={{ width: '100%', borderRadius: 12, marginBottom: 12 }} />
@@ -243,102 +215,54 @@ export default function Journal() {
           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
         </div>
 
-        {/* ── Writing prompts ── */}
+        {/* Writing prompts */}
         <div style={{ marginBottom: 28 }}>
           <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 12px' }}>Writing prompts — tap to add</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
             {PROMPTS.map(prompt => (
-              <button
-                key={prompt}
-                onClick={() => appendPrompt(prompt)}
-                style={{ padding: '7px 14px', background: 'var(--color-surface)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 99, fontSize: 13, color: 'var(--color-text-2)', cursor: 'pointer', transition: 'all 0.15s' }}
-              >
+              <button key={prompt} onClick={() => appendPrompt(prompt)} style={{ padding: '7px 14px', background: 'var(--color-surface)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 99, fontSize: 13, color: 'var(--color-text-2)', cursor: 'pointer' }}>
                 {prompt}
               </button>
             ))}
           </div>
           <div style={{ background: 'var(--color-surface)', borderRadius: 14, padding: 14, border: '1px solid rgba(255,255,255,0.06)' }}>
-            <textarea
-              ref={textareaRef}
-              value={text}
-              onChange={e => setText(e.target.value.slice(0, 500))}
-              placeholder="Write anything — what you noticed, what you'd do differently..."
-              style={{ width: '100%', minHeight: 120, background: 'transparent', border: 'none', outline: 'none', color: 'var(--color-text)', fontSize: 14, lineHeight: 1.6, resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
-            />
+            <textarea ref={textareaRef} value={text} onChange={e => setText(e.target.value.slice(0, 500))} placeholder="Write anything — what you noticed, what you'd do differently..." style={{ width: '100%', minHeight: 120, background: 'transparent', border: 'none', outline: 'none', color: 'var(--color-text)', fontSize: 14, lineHeight: 1.6, resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
             <div style={{ textAlign: 'right', fontSize: 11, color: 'var(--color-text-3)', marginTop: 4 }}>{text.length}/500</div>
           </div>
         </div>
 
-        {/* ── Star rating ── */}
+        {/* Star rating */}
         <div style={{ marginBottom: 28 }}>
           <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 12px' }}>Rate this session</p>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {[1,2,3,4,5].map(n => (
-                <button
-                  key={n}
-                  onClick={() => setRating(n)}
-                  onMouseEnter={() => setHoverRating(n)}
-                  onMouseLeave={() => setHoverRating(0)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}
-                >
-                  <Star
-                    size={32}
-                    color="#EF9F27"
-                    fill={n <= (hoverRating || rating) ? '#EF9F27' : 'transparent'}
-                    strokeWidth={1.5}
-                  />
-                </button>
-              ))}
-            </div>
-
+          <div style={{ display: 'flex', gap: 6 }}>
+            {[1,2,3,4,5].map(n => (
+              <button key={n} onClick={() => setRating(n)} onMouseEnter={() => setHoverRating(n)} onMouseLeave={() => setHoverRating(0)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
+                <Star size={32} color="#EF9F27" fill={n <= (hoverRating || rating) ? '#EF9F27' : 'transparent'} strokeWidth={1.5} />
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* ── Save button ── */}
-        <button
-          onClick={handleSave}
-          disabled={!hasContent || saving}
-          style={{
-            width: '100%', padding: '16px', borderRadius: 16,
-            background: hasContent ? 'linear-gradient(90deg,#6C3CE1 0%,#FF3D71 100%)' : 'var(--color-surface)',
-            border: 'none', cursor: hasContent ? 'pointer' : 'not-allowed',
-            fontSize: 16, fontWeight: 800,
-            color: hasContent ? '#fff' : 'var(--color-text-3)',
-            transition: 'all 0.2s',
-            opacity: saving ? 0.7 : 1,
-          }}
-        >
+        {/* Save button */}
+        <button onClick={handleSave} disabled={!hasContent || saving} style={{ width: '100%', padding: '16px', borderRadius: 16, background: hasContent ? 'linear-gradient(90deg,#6C3CE1 0%,#FF3D71 100%)' : 'var(--color-surface)', border: 'none', cursor: hasContent ? 'pointer' : 'not-allowed', fontSize: 16, fontWeight: 800, color: hasContent ? '#fff' : 'var(--color-text-3)', opacity: saving ? 0.7 : 1 }}>
           {saving ? 'Saving...' : 'Save entry'}
         </button>
 
       </div>
-    </div>
 
-      {/* ── Guest journal nudge ── */}
+      {/* Guest nudge sheet */}
       {showNudge && (
-        <div
-          onClick={() => { setShowNudge(false); setSaved(true); setTimeout(() => navigate('/saved'), 800) }}
-          style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{ width: '100%', maxWidth: 480, background: 'var(--color-surface)', borderRadius: '24px 24px 0 0', padding: '28px 24px 44px', boxShadow: '0 -8px 48px rgba(108,60,225,0.3)' }}
-          >
+        <div onClick={() => { setShowNudge(false); setSaved(true); setTimeout(() => navigate('/saved'), 800) }} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, background: 'var(--color-surface)', borderRadius: '24px 24px 0 0', padding: '28px 24px 44px', boxShadow: '0 -8px 48px rgba(108,60,225,0.3)' }}>
             <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--color-text-3)', margin: '0 auto 24px' }} />
             <div style={{ textAlign: 'center', marginBottom: 24 }}>
               <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'linear-gradient(135deg,#6C3CE1,#FF3D71)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
                 <BookOpen size={24} color="#fff" />
               </div>
               <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text)', margin: '0 0 8px' }}>Entry saved!</h3>
-              <p style={{ fontSize: 13, color: 'var(--color-text-2)', margin: 0, lineHeight: 1.6 }}>
-                Sign in to back up your journal across devices and never lose your creative reflections.
-              </p>
+              <p style={{ fontSize: 13, color: 'var(--color-text-2)', margin: 0, lineHeight: 1.6 }}>Sign in to back up your journal across devices and never lose your creative reflections.</p>
             </div>
-            <button
-              onClick={() => { setShowNudge(false); signInWithGoogle() }}
-              style={{ width: '100%', padding: '14px', borderRadius: 14, background: 'linear-gradient(135deg,#6C3CE1,#FF3D71)', border: 'none', cursor: 'pointer', fontSize: 15, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 10 }}
-            >
+            <button onClick={() => { setShowNudge(false); signInWithGoogle() }} style={{ width: '100%', padding: '14px', borderRadius: 14, background: 'linear-gradient(135deg,#6C3CE1,#FF3D71)', border: 'none', cursor: 'pointer', fontSize: 15, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 10 }}>
               <svg width="18" height="18" viewBox="0 0 24 24">
                 <path fill="#fff" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                 <path fill="#fff" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -347,10 +271,7 @@ export default function Journal() {
               </svg>
               Sign in to back up
             </button>
-            <button
-              onClick={() => { setShowNudge(false); setSaved(true); setTimeout(() => navigate('/saved'), 800) }}
-              style={{ width: '100%', padding: '13px', borderRadius: 14, background: 'transparent', border: '1px solid var(--color-text-3)', cursor: 'pointer', fontSize: 14, color: 'var(--color-text-2)' }}
-            >
+            <button onClick={() => { setShowNudge(false); setSaved(true); setTimeout(() => navigate('/saved'), 800) }} style={{ width: '100%', padding: '13px', borderRadius: 14, background: 'transparent', border: '1px solid var(--color-text-3)', cursor: 'pointer', fontSize: 14, color: 'var(--color-text-2)' }}>
               Continue without signing in
             </button>
           </div>
