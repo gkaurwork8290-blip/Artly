@@ -176,6 +176,14 @@ export default function Project() {
           </div>
         </div>
 
+        {/* ── Journal it CTA ── */}
+        <button
+          onClick={() => navigate('/journal')}
+          style={{ width: '100%', padding: '15px', borderRadius: 14, background: 'linear-gradient(90deg, #1D9E75 0%, #6C3CE1 100%)', border: 'none', cursor: 'pointer', fontSize: 15, fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 16 }}
+        >
+          <span>Journal my result</span> <ArrowRight size={18} />
+        </button>
+
         {/* ── All steps list ── */}
         {showAllSteps && (
           <div style={{ background: 'var(--color-surface)', borderRadius: 20, padding: 18, marginBottom: 16, border: '1px solid rgba(255,255,255,0.06)' }}>
