@@ -94,67 +94,53 @@ function GuestSaveSheet({ onClose, onSignIn }: { onClose: () => void; onSignIn: 
 
 // ─── IdeaCard ─────────────────────────────────────────────────────────────────
 
-function IdeaCard({
-  idea, index, total, isSaved, onToggleSave, onStartProject,
-}: {
+function IdeaCard({ idea, index, total, isSaved, onToggleSave, onStartProject }: {
   idea: Idea; index: number; total: number
   isSaved: boolean; onToggleSave: () => void; onStartProject: () => void
 }) {
-  const difficultyStyle = {
+  const dc = {
     beginner:     { bg: 'rgba(29,158,117,0.15)', text: '#1D9E75', border: '#1D9E75' },
     intermediate: { bg: 'rgba(239,159,39,0.15)', text: '#EF9F27', border: '#EF9F27' },
     advanced:     { bg: 'rgba(255,61,113,0.15)',  text: '#FF3D71', border: '#FF3D71' },
-  }
-  const dc = difficultyStyle[idea.difficulty] || difficultyStyle.beginner
-  const palette = idea.palette && idea.palette.length > 0 ? idea.palette : [{ hex: '#6C3CE1' }, { hex: '#FF3D71' }, { hex: '#1D9E75' }]
+  }[idea.difficulty] || { bg: 'rgba(29,158,117,0.15)', text: '#1D9E75', border: '#1D9E75' }
+
+  const pal = idea.palette?.length ? idea.palette : [{ hex: '#6C3CE1' }, { hex: '#FF3D71' }, { hex: '#1D9E75' }]
 
   return (
-    <div style={{ background: 'var(--color-surface)', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(108,60,225,0.2)', flexShrink: 0, width: '100%' }}>
+    <div style={{ background: 'var(--color-surface)', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(108,60,225,0.2)', width: '100%' }}>
 
-      {/* ── Art preview image area ── */}
-      <div style={{ width: '100%', height: 200, position: 'relative', overflow: 'hidden', background: '#0F0F1A' }}>
-
-        {/* Colour stripe band — full height */}
+      {/* Image area — self-contained, nothing leaks outside */}
+      <div style={{ position: 'relative', width: '100%', height: 200, overflow: 'hidden' }}>
+        {/* Colour stripes */}
         <div style={{ position: 'absolute', inset: 0, display: 'flex' }}>
-          {palette.map((c, i) => (
-            <div key={i} style={{ flex: 1, background: c.hex }} />
-          ))}
+          {pal.map((c, i) => <div key={i} style={{ flex: 1, background: c.hex }} />)}
         </div>
-
-        {/* Dark gradient overlay */}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.1) 35%, rgba(10,10,20,0.88) 70%, rgba(10,10,20,0.98) 100%)' }} />
-
-        {/* Generated for you badge */}
-        <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 2, background: 'rgba(108,60,225,0.85)', backdropFilter: 'blur(6px)', borderRadius: 20, padding: '4px 12px', display: 'flex', alignItems: 'center', gap: 5 }}>
+        {/* Full overlay: transparent top → solid black bottom */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 0%, transparent 25%, rgba(15,15,26,0.7) 55%, rgba(15,15,26,1) 100%)' }} />
+        {/* Badge top-left */}
+        <div style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(108,60,225,0.9)', borderRadius: 20, padding: '4px 12px', display: 'flex', alignItems: 'center', gap: 5 }}>
           <Sparkles size={12} color="#c4b0ff" />
           <span style={{ fontSize: 11, fontWeight: 600, color: '#c4b0ff' }}>Generated for you</span>
         </div>
-
-        {/* Heart button */}
-        <button
-          onClick={onToggleSave}
-          style={{ position: 'absolute', top: 12, right: 12, zIndex: 2, width: 38, height: 38, borderRadius: '50%', background: isSaved ? '#FF3D71' : 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)', border: isSaved ? 'none' : '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          aria-label={isSaved ? 'Unsave idea' : 'Save idea'}
-        >
+        {/* Heart top-right */}
+        <button onClick={onToggleSave} style={{ position: 'absolute', top: 12, right: 12, width: 38, height: 38, borderRadius: '50%', background: isSaved ? '#FF3D71' : 'rgba(0,0,0,0.5)', border: isSaved ? 'none' : '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Heart size={17} color="#fff" fill={isSaved ? '#fff' : 'none'} />
         </button>
-
-        {/* Title overlay at bottom */}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 2, padding: '12px 14px' }}>
+        {/* Title bottom — sits ON the solid black area */}
+        <div style={{ position: 'absolute', bottom: 12, left: 14, right: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
-            <Paintbrush2 size={11} color="rgba(255,255,255,0.45)" />
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>Art preview</span>
+            <Paintbrush2 size={11} color="rgba(255,255,255,0.4)" />
+            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>Art preview</span>
           </div>
           <p style={{ fontSize: 13, fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1.3 }}>{idea.title}</p>
         </div>
       </div>
 
-      {/* ── Card content ── */}
+      {/* Card body */}
       <div style={{ padding: '16px 16px 20px' }}>
         <h3 style={{ fontSize: 20, fontWeight: 800, color: 'var(--color-text)', margin: '0 0 8px', lineHeight: 1.2 }}>{idea.title}</h3>
         <p style={{ fontSize: 13, color: 'var(--color-text-2)', margin: '0 0 12px', lineHeight: 1.55 }}>{idea.description}</p>
 
-        {/* Materials used chip */}
         {idea.materialsUsed && (
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(108,60,225,0.12)', border: '1px solid rgba(108,60,225,0.2)', borderRadius: 20, padding: '5px 12px', marginBottom: 12 }}>
             <Sparkles size={11} color="#9b7ff0" />
@@ -162,7 +148,6 @@ function IdeaCard({
           </div>
         )}
 
-        {/* Difficulty + time */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 20, background: dc.bg, color: dc.text, border: `1px solid ${dc.border}` }}>
             {idea.difficulty.charAt(0).toUpperCase() + idea.difficulty.slice(1)}
@@ -172,7 +157,6 @@ function IdeaCard({
           </span>
         </div>
 
-        {/* Palette section */}
         <div style={{ marginBottom: 20 }}>
           <p style={{ fontSize: 11, color: 'var(--color-text-3)', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>Suggested colour palette</p>
           {idea.paletteLoading ? (
@@ -180,13 +164,11 @@ function IdeaCard({
               <div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid #6C3CE1', borderTopColor: 'transparent', animation: 'spin 0.7s linear infinite' }} />
               <span style={{ fontSize: 12, color: 'var(--color-text-3)' }}>Loading palette...</span>
             </div>
-          ) : idea.paletteError ? (
-            <span style={{ fontSize: 12, color: 'var(--color-text-3)' }}>Palette unavailable</span>
           ) : idea.palette && idea.palette.length > 0 ? (
             <>
               <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
                 {idea.palette.map((c, i) => (
-                  <div key={i} style={{ width: 44, height: 44, borderRadius: 10, background: c.hex, border: '1px solid rgba(255,255,255,0.12)', flexShrink: 0 }} title={c.name} />
+                  <div key={i} style={{ width: 44, height: 44, borderRadius: 10, background: c.hex, border: '1px solid rgba(255,255,255,0.12)' }} title={c.name} />
                 ))}
               </div>
               {idea.mixHint && <MixHintLine hint={idea.mixHint} />}
@@ -196,11 +178,7 @@ function IdeaCard({
           )}
         </div>
 
-        {/* CTA */}
-        <button
-          onClick={onStartProject}
-          style={{ width: '100%', padding: '15px', borderRadius: 14, background: 'linear-gradient(90deg, #6C3CE1 0%, #FF3D71 100%)', border: 'none', cursor: 'pointer', fontSize: 16, fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-        >
+        <button onClick={onStartProject} style={{ width: '100%', padding: '15px', borderRadius: 14, background: 'linear-gradient(90deg, #6C3CE1 0%, #FF3D71 100%)', border: 'none', cursor: 'pointer', fontSize: 16, fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
           Start this project <ArrowRight size={18} />
         </button>
       </div>
