@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'r
 import Home from './pages/Home'
 import Landing from './pages/Landing'
 import Create from './pages/Create'
-import History from './pages/History'
+import Saved from './pages/Saved'
 import Journal from './pages/Journal'
 import Profile from './pages/Profile'
 import Project from './pages/Project'
@@ -31,7 +31,7 @@ function AppContent() {
           element={<Onboarding />} 
         />
         <Route path="/create" element={<Create />} />
-        <Route path="/history" element={<History />} />
+        <Route path="/saved" element={<Saved />} />
         <Route path="/journal" element={<Journal />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/project" element={<Project />} />

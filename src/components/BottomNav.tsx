@@ -1,11 +1,11 @@
-import { Home, Plus, Clock, BookOpen, User } from 'lucide-react'
+import { Home, Plus, BookOpen, User, Heart } from 'lucide-react'
 import { useLocation, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 const navItems = [
   { name: 'Home', icon: Home, href: '/home' },
   { name: 'Create', icon: Plus, href: '/create' },
-  { name: 'History', icon: Clock, href: '/history' },
+  { name: 'Saved', icon: Heart, href: '/saved' },
   { name: 'Journal', icon: BookOpen, href: '/journal' },
   { name: 'Profile', icon: User, href: '/profile' },
 ]
@@ -27,10 +27,13 @@ export default function BottomNav() {
               key={item.name}
               to={item.href}
               className={`flex flex-col items-center p-2 rounded-lg transition-all duration-200 ${
-                isActive
+                isActive && item.name === 'Saved'
+                  ? 'text-white'
+                  : isActive
                   ? 'bg-gradient-to-r from-primary to-secondary text-white'
                   : 'text-text-secondary hover:text-text-primary'
               }`}
+              style={isActive && item.name === 'Saved' ? { background: '#FF3D71' } : {}}
             >
               <div className="relative">
                 <Icon size={20} className="mb-1" />
