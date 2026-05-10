@@ -111,32 +111,27 @@ function IdeaCard({
   return (
     <div style={{ background: 'var(--color-surface)', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(108,60,225,0.2)', flexShrink: 0, width: '100%' }}>
 
-      {/* Art placeholder — replaced with Unsplash in polish pass */}
+      {/* Art preview card — replaced with Unsplash in polish pass */}
       <div style={{ position: 'relative' }}>
         <div style={{
-          width: '100%', height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column',
-          background: idea.palette && idea.palette.length > 0
-            ? `linear-gradient(135deg, ${idea.palette[0]?.hex || '#6C3CE1'}cc, ${idea.palette[1]?.hex || '#FF3D71'}99, ${idea.palette[2]?.hex || '#1D9E75'}66)`
-            : 'linear-gradient(135deg, #6C3CE122, #FF3D7122)',
-          position: 'relative', overflow: 'hidden',
+          width: '100%', height: 200, position: 'relative', overflow: 'hidden',
+          background: '#0F0F1A',
         }}>
-          {/* Decorative paint strokes */}
-          <div style={{ position: 'absolute', inset: 0, opacity: 0.15 }}>
-            {idea.palette && idea.palette.slice(0, 4).map((c, i) => (
-              <div key={i} style={{
-                position: 'absolute',
-                width: `${60 + i * 20}px`, height: `${60 + i * 20}px`,
-                borderRadius: '50%', background: c.hex,
-                left: `${10 + i * 22}%`, top: `${20 + (i % 2) * 30}%`,
-                filter: 'blur(18px)',
-              }} />
+          {/* Colour stripe band — top 40% */}
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '55%', display: 'flex' }}>
+            {(idea.palette && idea.palette.length > 0 ? idea.palette : [{hex:'#6C3CE1'},{hex:'#FF3D71'},{hex:'#1D9E75'}]).map((c, i) => (
+              <div key={i} style={{ flex: 1, background: c.hex, opacity: 0.85 }} />
             ))}
           </div>
-          <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', padding: '0 20px' }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>
-              <Paintbrush2 size={36} color="rgba(255,255,255,0.6)" />
+          {/* Bottom info band */}
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%', background: 'linear-gradient(to bottom, transparent, rgba(10,10,20,0.97))', display: 'flex', alignItems: 'flex-end', padding: '12px 14px' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <Paintbrush2 size={13} color="rgba(255,255,255,0.5)" />
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Art preview</span>
+              </div>
+              <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1.3 }}>{idea.title}</p>
             </div>
-            <p style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.85)', margin: 0, lineHeight: 1.3 }}>{idea.title}</p>
           </div>
         </div>
         {/* Generated for you badge */}
@@ -684,24 +679,24 @@ export default function Create() {
               <>
                 {/* Desktop prev/next arrows + carousel */}
                 <div style={{ position: 'relative' }}>
-                  {/* Prev arrow */}
+                  {/* Prev arrow — sits inside image top-left area */}
                   {activeIndex > 0 && (
                     <button
                       onClick={() => setActiveIndex(i => i - 1)}
-                      style={{ position: 'absolute', left: -20, top: '50%', transform: 'translateY(-50%)', zIndex: 10, width: 40, height: 40, borderRadius: '50%', background: 'var(--color-surface)', border: '1px solid rgba(108,60,225,0.3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}
+                      style={{ position: 'absolute', left: 10, top: 90, zIndex: 10, width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       aria-label="Previous idea"
                     >
-                      <ChevronLeft size={20} color="var(--color-text)" />
+                      <ChevronLeft size={18} color="#fff" />
                     </button>
                   )}
-                  {/* Next arrow */}
+                  {/* Next arrow — sits inside image top-right area */}
                   {activeIndex < ideas.length - 1 && (
                     <button
                       onClick={() => setActiveIndex(i => i + 1)}
-                      style={{ position: 'absolute', right: -20, top: '50%', transform: 'translateY(-50%)', zIndex: 10, width: 40, height: 40, borderRadius: '50%', background: 'var(--color-surface)', border: '1px solid rgba(108,60,225,0.3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}
+                      style={{ position: 'absolute', right: 10, top: 90, zIndex: 10, width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       aria-label="Next idea"
                     >
-                      <ChevronRight size={20} color="var(--color-text)" />
+                      <ChevronRight size={18} color="#fff" />
                     </button>
                   )}
                   <div
