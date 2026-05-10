@@ -117,21 +117,21 @@ function IdeaCard({
           width: '100%', height: 200, position: 'relative', overflow: 'hidden',
           background: '#0F0F1A',
         }}>
-          {/* Colour stripe band — top 40% */}
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '55%', display: 'flex' }}>
+          {/* Full-height colour stripe band */}
+          <div style={{ position: 'absolute', inset: 0, display: 'flex' }}>
             {(idea.palette && idea.palette.length > 0 ? idea.palette : [{hex:'#6C3CE1'},{hex:'#FF3D71'},{hex:'#1D9E75'}]).map((c, i) => (
-              <div key={i} style={{ flex: 1, background: c.hex, opacity: 0.85 }} />
+              <div key={i} style={{ flex: 1, background: c.hex }} />
             ))}
           </div>
-          {/* Bottom info band */}
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%', background: 'linear-gradient(to bottom, transparent, rgba(10,10,20,0.97))', display: 'flex', alignItems: 'flex-end', padding: '12px 14px' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                <Paintbrush2 size={13} color="rgba(255,255,255,0.5)" />
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Art preview</span>
-              </div>
-              <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1.3 }}>{idea.title}</p>
+          {/* Dark gradient overlay — bottom half */}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.15) 40%, rgba(10,10,20,0.92) 75%, rgba(10,10,20,0.98) 100%)' }} />
+          {/* Title overlay */}
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '12px 14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <Paintbrush2 size={12} color="rgba(255,255,255,0.5)" />
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>Art preview</span>
             </div>
+            <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1.3 }}>{idea.title}</p>
           </div>
         </div>
         {/* Generated for you badge */}
