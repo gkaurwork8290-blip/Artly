@@ -306,6 +306,8 @@ export default function Create() {
     setError(null)
     setIdeas([])
     setActiveIndex(0)
+    // Save materials for Project screen
+    localStorage.setItem('artly_detected_materials', JSON.stringify(detectedMaterials))
     try {
       const skillLevel = localStorage.getItem('artly_skill') || 'beginner'
       const res = await fetch('/api/generate-ideas', {

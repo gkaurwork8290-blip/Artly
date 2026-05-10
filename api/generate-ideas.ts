@@ -15,8 +15,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!materials || !Array.isArray(materials)) return res.status(400).json({ error: 'Materials array required' });
   if (!skillLevel || !['beginner', 'intermediate', 'advanced'].includes(skillLevel)) return res.status(400).json({ error: 'Valid skill level required' });
 
-  const themeText = theme ? ` Theme: ${theme}.` : '';
-  const userPrompt = `Generate 3 creative project ideas for an artist with these materials: ${materials.join(', ')}. Skill level: ${skillLevel}.${themeText} Return ONLY a JSON array: [{ title, description, difficulty, estimatedTime, steps: string[] }]`;
+  const themeText = theme ? ` Theme or mood: ${theme}.` : '';
+  const userPrompt = `Generate 3 creative project ideas for an artist with these materials: ${materials.join(', ')}. Skill level: ${skillLevel}.${themeText}
+
+Return ONLY a valid JSON array with no markdown, no explanation:
+[{
+  "title": "string",
+  "description": "string — 2 sentences",
+  "difficulty": "beginner" | "intermediate" | "advanced",
+  "estimatedTime": "string e.g. 45 minutes or 2-3 hours",
+  "materialsUsed": "string — short summary e.g. Uses your brushes, paper, and paints",
+  "steps": [
+    {
+      "title": "string — short action e.g. Arrange your leaves",
+      "description": "string — 1-2 sentences explaining what to do",
+      "tip": "string — one practical tip for this step"
+    }
+  ]
+}]
+
+Generate 4-6 steps per idea. Steps must be practical and specific to the materials listed.`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -28,31 +46,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5',
-        max_tokens: 1024,
-        system: 'You are a creative art coach. Always respond with ONLY a valid JSON array, no markdown, no explanation.',
+        max_tokens: 2048,
+        system: 'You are a creative art coach. Always respond with ONLY a valid JSON array, no markdown, no backticks, no explanation.',
         messages: [{ role: 'user', content: userPrompt }]
       })
     });
 
     const responseText = await response.text();
-    console.log('Ideas generation response status:', response.status);
-
-    if (!response.ok) {
-      return res.status(500).json({ error: `Anthropic error: ${responseText}` });
-    }
+    if (!response.ok) return res.status(500).json({ error: `Anthropic error: ${responseText}` });
 
     const data = JSON.parse(responseText);
     const rawText = data.content?.[0]?.text || '[]';
     const cleaned = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    
+
     try {
       const ideas = JSON.parse(cleaned);
       return res.status(200).json({ ideas });
-    } catch (parseError) {
-      return res.status(500).json({ error: 'Failed to parse', rawResponse: cleaned });
+    } catch {
+      return res.status(500).json({ error: 'Failed to parse ideas response', rawResponse: cleaned });
     }
   } catch (error) {
-    console.error('Internal server error:', error);
+    console.error('Ideas generation error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
