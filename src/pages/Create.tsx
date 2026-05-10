@@ -111,14 +111,34 @@ function IdeaCard({
   return (
     <div style={{ background: 'var(--color-surface)', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(108,60,225,0.2)', flexShrink: 0, width: '100%' }}>
 
-      {/* Image */}
+      {/* Art placeholder — replaced with Unsplash in polish pass */}
       <div style={{ position: 'relative' }}>
-        <img
-          src={`https://picsum.photos/seed/${picsumSeed}/600/320`}
-          alt={idea.title}
-          style={{ width: '100%', height: 220, objectFit: 'cover', display: 'block' }}
-          onError={e => { e.currentTarget.style.background = '#1A1A2E'; e.currentTarget.style.height = '160px' }}
-        />
+        <div style={{
+          width: '100%', height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column',
+          background: idea.palette && idea.palette.length > 0
+            ? `linear-gradient(135deg, ${idea.palette[0]?.hex || '#6C3CE1'}cc, ${idea.palette[1]?.hex || '#FF3D71'}99, ${idea.palette[2]?.hex || '#1D9E75'}66)`
+            : 'linear-gradient(135deg, #6C3CE122, #FF3D7122)',
+          position: 'relative', overflow: 'hidden',
+        }}>
+          {/* Decorative paint strokes */}
+          <div style={{ position: 'absolute', inset: 0, opacity: 0.15 }}>
+            {idea.palette && idea.palette.slice(0, 4).map((c, i) => (
+              <div key={i} style={{
+                position: 'absolute',
+                width: `${60 + i * 20}px`, height: `${60 + i * 20}px`,
+                borderRadius: '50%', background: c.hex,
+                left: `${10 + i * 22}%`, top: `${20 + (i % 2) * 30}%`,
+                filter: 'blur(18px)',
+              }} />
+            ))}
+          </div>
+          <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', padding: '0 20px' }}>
+            <div style={{ fontSize: 32, marginBottom: 8 }}>
+              <Paintbrush2 size={36} color="rgba(255,255,255,0.6)" />
+            </div>
+            <p style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.85)', margin: 0, lineHeight: 1.3 }}>{idea.title}</p>
+          </div>
+        </div>
         {/* Generated for you badge */}
         <div style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(108,60,225,0.85)', backdropFilter: 'blur(6px)', borderRadius: 20, padding: '4px 12px', display: 'flex', alignItems: 'center', gap: 5 }}>
           <Sparkles size={12} color="#c4b0ff" />
@@ -132,7 +152,7 @@ function IdeaCard({
         >
           <Heart size={17} color={isSaved ? '#fff' : '#fff'} fill={isSaved ? '#fff' : 'none'} />
         </button>
-      </div>
+        </div>
 
       {/* Content */}
       <div style={{ padding: '16px 16px 20px' }}>
@@ -662,28 +682,51 @@ export default function Create() {
             {/* Carousel */}
             {ideas.length > 0 && (
               <>
-                <div
-                  ref={carouselRef}
-                  onTouchStart={handleTouchStart}
-                  onTouchEnd={handleTouchEnd}
-                  style={{ overflow: 'hidden', marginBottom: 16 }}
-                >
-                  <div style={{ display: 'flex', transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)', transform: `translateX(-${activeIndex * 100}%)` }}>
-                    {ideas.map((idea, idx) => (
-                      <div key={idx} style={{ minWidth: '100%' }}>
-                        <IdeaCard
-                          idea={idea}
-                          index={idx}
-                          total={ideas.length}
-                          isSaved={!!savedIdeas[savedKey(idea.title)]}
-                          onToggleSave={() => handleToggleSave(idea)}
-                          onStartProject={() => {
-                            localStorage.setItem('artly_active_idea', JSON.stringify(idea))
-                            navigate('/journal')
-                          }}
-                        />
-                      </div>
-                    ))}
+                {/* Desktop prev/next arrows + carousel */}
+                <div style={{ position: 'relative' }}>
+                  {/* Prev arrow */}
+                  {activeIndex > 0 && (
+                    <button
+                      onClick={() => setActiveIndex(i => i - 1)}
+                      style={{ position: 'absolute', left: -20, top: '50%', transform: 'translateY(-50%)', zIndex: 10, width: 40, height: 40, borderRadius: '50%', background: 'var(--color-surface)', border: '1px solid rgba(108,60,225,0.3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}
+                      aria-label="Previous idea"
+                    >
+                      <ChevronLeft size={20} color="var(--color-text)" />
+                    </button>
+                  )}
+                  {/* Next arrow */}
+                  {activeIndex < ideas.length - 1 && (
+                    <button
+                      onClick={() => setActiveIndex(i => i + 1)}
+                      style={{ position: 'absolute', right: -20, top: '50%', transform: 'translateY(-50%)', zIndex: 10, width: 40, height: 40, borderRadius: '50%', background: 'var(--color-surface)', border: '1px solid rgba(108,60,225,0.3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}
+                      aria-label="Next idea"
+                    >
+                      <ChevronRight size={20} color="var(--color-text)" />
+                    </button>
+                  )}
+                  <div
+                    ref={carouselRef}
+                    onTouchStart={handleTouchStart}
+                    onTouchEnd={handleTouchEnd}
+                    style={{ overflow: 'hidden', marginBottom: 16 }}
+                  >
+                    <div style={{ display: 'flex', transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)', transform: `translateX(-${activeIndex * 100}%)` }}>
+                      {ideas.map((idea, idx) => (
+                        <div key={idx} style={{ minWidth: '100%' }}>
+                          <IdeaCard
+                            idea={idea}
+                            index={idx}
+                            total={ideas.length}
+                            isSaved={!!savedIdeas[savedKey(idea.title)]}
+                            onToggleSave={() => handleToggleSave(idea)}
+                            onStartProject={() => {
+                              localStorage.setItem('artly_active_idea', JSON.stringify(idea))
+                              navigate('/journal')
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
