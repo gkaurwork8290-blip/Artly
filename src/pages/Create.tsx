@@ -133,20 +133,19 @@ function IdeaCard({
             </div>
             <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1.3 }}>{idea.title}</p>
           </div>
-        </div>
-        {/* Generated for you badge */}
-        <div style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(108,60,225,0.85)', backdropFilter: 'blur(6px)', borderRadius: 20, padding: '4px 12px', display: 'flex', alignItems: 'center', gap: 5 }}>
-          <Sparkles size={12} color="#c4b0ff" />
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#c4b0ff' }}>Generated for you</span>
-        </div>
-        {/* Heart button */}
-        <button
-          onClick={onToggleSave}
-          style={{ position: 'absolute', top: 12, right: 12, width: 38, height: 38, borderRadius: '50%', background: isSaved ? '#FF3D71' : 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)', border: isSaved ? 'none' : '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          aria-label={isSaved ? 'Unsave idea' : 'Save idea'}
-        >
-          <Heart size={17} color={isSaved ? '#fff' : '#fff'} fill={isSaved ? '#fff' : 'none'} />
-        </button>
+          {/* Generated for you badge */}
+          <div style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(108,60,225,0.85)', backdropFilter: 'blur(6px)', borderRadius: 20, padding: '4px 12px', display: 'flex', alignItems: 'center', gap: 5, zIndex: 2 }}>
+            <Sparkles size={12} color="#c4b0ff" />
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#c4b0ff' }}>Generated for you</span>
+          </div>
+          {/* Heart button */}
+          <button
+            onClick={onToggleSave}
+            style={{ position: 'absolute', top: 12, right: 12, width: 38, height: 38, borderRadius: '50%', background: isSaved ? '#FF3D71' : 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)', border: isSaved ? 'none' : '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}
+            aria-label={isSaved ? 'Unsave idea' : 'Save idea'}
+          >
+            <Heart size={17} color="#fff" fill={isSaved ? '#fff' : 'none'} />
+          </button>
         </div>
 
       {/* Content */}
