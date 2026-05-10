@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Smile, SmilePlus, Meh, Frown, ImagePlus, Camera,
-  Sparkles, Star, PenLine, Check
+  Sparkles, Star, Check
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -285,15 +285,7 @@ export default function Journal() {
                 </button>
               ))}
             </div>
-            <button
-              onClick={() => { 
-                textareaRef.current?.focus()
-                textareaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-              }}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: 'transparent', border: '1.5px solid #6C3CE1', borderRadius: 12, color: '#6C3CE1', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
-            >
-              <PenLine size={14} color="#6C3CE1" /> Add notes
-            </button>
+
           </div>
         </div>
 
