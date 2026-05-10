@@ -101,54 +101,55 @@ function IdeaCard({
   isSaved: boolean; onToggleSave: () => void; onStartProject: () => void
 }) {
   const difficultyStyle = {
-    beginner:     { bg: 'rgba(29,158,117,0.15)',  text: '#1D9E75',  border: '#1D9E75' },
-    intermediate: { bg: 'rgba(239,159,39,0.15)',  text: '#EF9F27',  border: '#EF9F27' },
-    advanced:     { bg: 'rgba(255,61,113,0.15)',   text: '#FF3D71',  border: '#FF3D71' },
+    beginner:     { bg: 'rgba(29,158,117,0.15)', text: '#1D9E75', border: '#1D9E75' },
+    intermediate: { bg: 'rgba(239,159,39,0.15)', text: '#EF9F27', border: '#EF9F27' },
+    advanced:     { bg: 'rgba(255,61,113,0.15)',  text: '#FF3D71', border: '#FF3D71' },
   }
   const dc = difficultyStyle[idea.difficulty] || difficultyStyle.beginner
-  const picsumSeed = encodeURIComponent(idea.title.replace(/\s+/g, '-').toLowerCase())
+  const palette = idea.palette && idea.palette.length > 0 ? idea.palette : [{ hex: '#6C3CE1' }, { hex: '#FF3D71' }, { hex: '#1D9E75' }]
 
   return (
     <div style={{ background: 'var(--color-surface)', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(108,60,225,0.2)', flexShrink: 0, width: '100%' }}>
 
-      {/* Art preview card — replaced with Unsplash in polish pass */}
-      <div style={{ position: 'relative' }}>
-        <div style={{
-          width: '100%', height: 200, position: 'relative', overflow: 'hidden',
-          background: '#0F0F1A',
-        }}>
-          {/* Full-height colour stripe band */}
-          <div style={{ position: 'absolute', inset: 0, display: 'flex' }}>
-            {(idea.palette && idea.palette.length > 0 ? idea.palette : [{hex:'#6C3CE1'},{hex:'#FF3D71'},{hex:'#1D9E75'}]).map((c, i) => (
-              <div key={i} style={{ flex: 1, background: c.hex }} />
-            ))}
-          </div>
-          {/* Dark gradient overlay — bottom half */}
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.15) 40%, rgba(10,10,20,0.92) 75%, rgba(10,10,20,0.98) 100%)' }} />
-          {/* Title overlay */}
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '12px 14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-              <Paintbrush2 size={12} color="rgba(255,255,255,0.5)" />
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>Art preview</span>
-            </div>
-            <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1.3 }}>{idea.title}</p>
-          </div>
-          {/* Generated for you badge */}
-          <div style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(108,60,225,0.85)', backdropFilter: 'blur(6px)', borderRadius: 20, padding: '4px 12px', display: 'flex', alignItems: 'center', gap: 5, zIndex: 2 }}>
-            <Sparkles size={12} color="#c4b0ff" />
-            <span style={{ fontSize: 11, fontWeight: 600, color: '#c4b0ff' }}>Generated for you</span>
-          </div>
-          {/* Heart button */}
-          <button
-            onClick={onToggleSave}
-            style={{ position: 'absolute', top: 12, right: 12, width: 38, height: 38, borderRadius: '50%', background: isSaved ? '#FF3D71' : 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)', border: isSaved ? 'none' : '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}
-            aria-label={isSaved ? 'Unsave idea' : 'Save idea'}
-          >
-            <Heart size={17} color="#fff" fill={isSaved ? '#fff' : 'none'} />
-          </button>
+      {/* ── Art preview image area ── */}
+      <div style={{ width: '100%', height: 200, position: 'relative', overflow: 'hidden', background: '#0F0F1A' }}>
+
+        {/* Colour stripe band — full height */}
+        <div style={{ position: 'absolute', inset: 0, display: 'flex' }}>
+          {palette.map((c, i) => (
+            <div key={i} style={{ flex: 1, background: c.hex }} />
+          ))}
         </div>
 
-      {/* Content */}
+        {/* Dark gradient overlay */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.1) 35%, rgba(10,10,20,0.88) 70%, rgba(10,10,20,0.98) 100%)' }} />
+
+        {/* Generated for you badge */}
+        <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 2, background: 'rgba(108,60,225,0.85)', backdropFilter: 'blur(6px)', borderRadius: 20, padding: '4px 12px', display: 'flex', alignItems: 'center', gap: 5 }}>
+          <Sparkles size={12} color="#c4b0ff" />
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#c4b0ff' }}>Generated for you</span>
+        </div>
+
+        {/* Heart button */}
+        <button
+          onClick={onToggleSave}
+          style={{ position: 'absolute', top: 12, right: 12, zIndex: 2, width: 38, height: 38, borderRadius: '50%', background: isSaved ? '#FF3D71' : 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)', border: isSaved ? 'none' : '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          aria-label={isSaved ? 'Unsave idea' : 'Save idea'}
+        >
+          <Heart size={17} color="#fff" fill={isSaved ? '#fff' : 'none'} />
+        </button>
+
+        {/* Title overlay at bottom */}
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 2, padding: '12px 14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
+            <Paintbrush2 size={11} color="rgba(255,255,255,0.45)" />
+            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>Art preview</span>
+          </div>
+          <p style={{ fontSize: 13, fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1.3 }}>{idea.title}</p>
+        </div>
+      </div>
+
+      {/* ── Card content ── */}
       <div style={{ padding: '16px 16px 20px' }}>
         <h3 style={{ fontSize: 20, fontWeight: 800, color: 'var(--color-text)', margin: '0 0 8px', lineHeight: 1.2 }}>{idea.title}</h3>
         <p style={{ fontSize: 13, color: 'var(--color-text-2)', margin: '0 0 12px', lineHeight: 1.55 }}>{idea.description}</p>
@@ -173,12 +174,10 @@ function IdeaCard({
 
         {/* Palette section */}
         <div style={{ marginBottom: 20 }}>
-          <p style={{ fontSize: 12, color: 'var(--color-text-3)', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>Suggested colour palette</p>
-
+          <p style={{ fontSize: 11, color: 'var(--color-text-3)', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>Suggested colour palette</p>
           {idea.paletteLoading ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
-              <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid #6C3CE1', borderTopColor: 'transparent', animation: 'spin 0.7s linear infinite' }} />
+              <div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid #6C3CE1', borderTopColor: 'transparent', animation: 'spin 0.7s linear infinite' }} />
               <span style={{ fontSize: 12, color: 'var(--color-text-3)' }}>Loading palette...</span>
             </div>
           ) : idea.paletteError ? (
@@ -208,6 +207,7 @@ function IdeaCard({
     </div>
   )
 }
+
 
 // ─── MixHintLine ──────────────────────────────────────────────────────────────
 
