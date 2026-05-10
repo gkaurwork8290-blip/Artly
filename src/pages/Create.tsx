@@ -104,36 +104,30 @@ function IdeaCard({ idea, index, total, isSaved, onToggleSave, onStartProject }:
     advanced:     { bg: 'rgba(255,61,113,0.15)',  text: '#FF3D71', border: '#FF3D71' },
   }[idea.difficulty] || { bg: 'rgba(29,158,117,0.15)', text: '#1D9E75', border: '#1D9E75' }
 
-  const pal = idea.palette?.length ? idea.palette : [{ hex: '#6C3CE1' }, { hex: '#FF3D71' }, { hex: '#1D9E75' }]
+  const seed = encodeURIComponent(idea.title.replace(/\s+/g, '-').toLowerCase())
 
   return (
     <div style={{ background: 'var(--color-surface)', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(108,60,225,0.2)', width: '100%' }}>
 
-      {/* Image area — self-contained, nothing leaks outside */}
-      <div style={{ position: 'relative', width: '100%', height: 200, overflow: 'hidden' }}>
-        {/* Colour stripes */}
-        <div style={{ position: 'absolute', inset: 0, display: 'flex' }}>
-          {pal.map((c, i) => <div key={i} style={{ flex: 1, background: c.hex }} />)}
-        </div>
-        {/* Full overlay: transparent top → solid black bottom */}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 0%, transparent 25%, rgba(15,15,26,0.7) 55%, rgba(15,15,26,1) 100%)' }} />
-        {/* Badge top-left */}
-        <div style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(108,60,225,0.9)', borderRadius: 20, padding: '4px 12px', display: 'flex', alignItems: 'center', gap: 5 }}>
+      {/* Image */}
+      <div style={{ position: 'relative' }}>
+        <img
+          src={`https://picsum.photos/seed/${seed}/600/320`}
+          alt={idea.title}
+          style={{ width: '100%', height: 220, objectFit: 'cover', display: 'block' }}
+        />
+        {/* Badge */}
+        <div style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(108,60,225,0.85)', backdropFilter: 'blur(6px)', borderRadius: 20, padding: '4px 12px', display: 'flex', alignItems: 'center', gap: 5 }}>
           <Sparkles size={12} color="#c4b0ff" />
           <span style={{ fontSize: 11, fontWeight: 600, color: '#c4b0ff' }}>Generated for you</span>
         </div>
-        {/* Heart top-right */}
-        <button onClick={onToggleSave} style={{ position: 'absolute', top: 12, right: 12, width: 38, height: 38, borderRadius: '50%', background: isSaved ? '#FF3D71' : 'rgba(0,0,0,0.5)', border: isSaved ? 'none' : '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {/* Heart */}
+        <button
+          onClick={e => { e.stopPropagation(); onToggleSave() }}
+          style={{ position: 'absolute', top: 12, right: 12, width: 38, height: 38, borderRadius: '50%', background: isSaved ? '#FF3D71' : 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)', border: isSaved ? 'none' : '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
           <Heart size={17} color="#fff" fill={isSaved ? '#fff' : 'none'} />
         </button>
-        {/* Title bottom — sits ON the solid black area */}
-        <div style={{ position: 'absolute', bottom: 12, left: 14, right: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
-            <Paintbrush2 size={11} color="rgba(255,255,255,0.4)" />
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>Art preview</span>
-          </div>
-          <p style={{ fontSize: 13, fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1.3 }}>{idea.title}</p>
-        </div>
       </div>
 
       {/* Card body */}
