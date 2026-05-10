@@ -689,7 +689,7 @@ export default function Create() {
                             onToggleSave={() => handleToggleSave(idea)}
                             onStartProject={() => {
                               localStorage.setItem('artly_active_idea', JSON.stringify(idea))
-                              navigate('/journal')
+                              navigate('/project')
                             }}
                           />
                         </div>
