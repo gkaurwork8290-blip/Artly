@@ -5,6 +5,7 @@ import Create from './pages/Create'
 import History from './pages/History'
 import Journal from './pages/Journal'
 import Profile from './pages/Profile'
+import Project from './pages/Project'
 import Onboarding from './pages/Onboarding'
 import BottomNav from './components/BottomNav'
 import { AuthProvider } from './contexts/AuthContext'
@@ -33,6 +34,7 @@ function AppContent() {
         <Route path="/history" element={<History />} />
         <Route path="/journal" element={<Journal />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/project" element={<Project />} />
       </Routes>
       {showBottomNav && <BottomNav />}
     </div>
