@@ -35,6 +35,7 @@ export default function Saved() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('projects')
   const [journalEntries, setJournalEntries] = useState([])
+  const [expandedEntry, setExpandedEntry] = useState(null)
   const [savedIdeas, setSavedIdeas] = useState([])
 
   useEffect(() => {
@@ -214,7 +215,11 @@ export default function Saved() {
               {journalEntries.map((entry, i) => {
                 const moodData = MOOD_MAP[entry.mood]
                 return (
-                  <div key={i} style={{ background: 'var(--color-surface)', borderRadius: 16, padding: 16, border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div
+                    key={i}
+                    onClick={() => setExpandedEntry(entry)}
+                    style={{ background: 'var(--color-surface)', borderRadius: 16, padding: 16, border: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer' }}
+                  >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                       <div style={{ flex: 1 }}>
                         <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text)', margin: '0 0 4px' }}>{entry.idea_title || 'Journal entry'}</p>
@@ -239,12 +244,81 @@ export default function Saved() {
                         {entry.text}
                       </p>
                     )}
+                    {entry.artwork_image && (
+                      <div style={{ marginTop: 8, fontSize: 11, color: '#6C3CE1', fontWeight: 600 }}>📷 Photo attached — tap to view</div>
+                    )}
                   </div>
                 )
               })}
             </div>
           )
         )}
+
+        {/* ── Journal entry detail modal ── */}
+        {expandedEntry && (() => {
+          const entry = expandedEntry
+          const moodData = MOOD_MAP[entry.mood]
+          return (
+            <div
+              onClick={() => setExpandedEntry(null)}
+              style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+            >
+              <div
+                onClick={e => e.stopPropagation()}
+                style={{ width: '100%', maxWidth: 640, background: 'var(--color-surface)', borderRadius: '24px 24px 0 0', padding: '24px 20px 44px', maxHeight: '90vh', overflowY: 'auto' }}
+              >
+                {/* Handle */}
+                <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--color-text-3)', margin: '0 auto 20px' }} />
+
+                {/* Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                  <div>
+                    <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--color-text)', margin: '0 0 4px' }}>{entry.idea_title || 'Journal entry'}</h3>
+                    <p style={{ fontSize: 12, color: 'var(--color-text-3)', margin: 0 }}>{formatDate(entry.created_at)}</p>
+                  </div>
+                  {moodData && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: `${moodData.color}15`, border: `1px solid ${moodData.color}`, borderRadius: 20, padding: '6px 12px' }}>
+                      <moodData.Icon size={15} color={moodData.color} />
+                      <span style={{ fontSize: 12, fontWeight: 700, color: moodData.color, textTransform: 'capitalize' }}>{entry.mood}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Stars */}
+                {entry.rating > 0 && (
+                  <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
+                    {[1,2,3,4,5].map(n => (
+                      <Star key={n} size={20} color="#EF9F27" fill={n <= entry.rating ? '#EF9F27' : 'transparent'} strokeWidth={1.5} />
+                    ))}
+                  </div>
+                )}
+
+                {/* Artwork image */}
+                {entry.artwork_image && (
+                  <div style={{ marginBottom: 16 }}>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-3)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 8px' }}>Your artwork</p>
+                    <img src={entry.artwork_image} alt="Artwork" style={{ width: '100%', borderRadius: 14, objectFit: 'cover', maxHeight: 280 }} />
+                  </div>
+                )}
+
+                {/* Text */}
+                {entry.text && (
+                  <div style={{ marginBottom: 16 }}>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-3)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 8px' }}>Notes</p>
+                    <p style={{ fontSize: 14, color: 'var(--color-text)', lineHeight: 1.6, margin: 0, whiteSpace: 'pre-wrap' }}>{entry.text}</p>
+                  </div>
+                )}
+
+                <button
+                  onClick={() => setExpandedEntry(null)}
+                  style={{ width: '100%', padding: '14px', borderRadius: 14, background: 'var(--color-bg)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--color-text-2)', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )
+        })()}
 
         {/* ── Start something new ── */}
         <div
