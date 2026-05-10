@@ -286,7 +286,10 @@ export default function Journal() {
               ))}
             </div>
             <button
-              onClick={() => { textareaRef.current?.focus() }}
+              onClick={() => { 
+                textareaRef.current?.focus()
+                textareaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+              }}
               style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: 'transparent', border: '1.5px solid #6C3CE1', borderRadius: 12, color: '#6C3CE1', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
             >
               <PenLine size={14} color="#6C3CE1" /> Add notes
