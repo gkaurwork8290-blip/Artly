@@ -12,10 +12,12 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 
 function AppContent() {
   const location = useLocation()
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
   const onboardingComplete = localStorage.getItem('artly_onboarding_complete') === 'true'
 
-  // Landing: if signed in + onboarding done → home, if signed in + no skill → onboarding
+  // Wait for Supabase session to resolve before any redirect
+  if (loading) return null
+
   if (location.pathname === '/') {
     if (user && onboardingComplete) return <Navigate to="/home" replace />
     if (user && !onboardingComplete) return <Navigate to="/onboarding" replace />
