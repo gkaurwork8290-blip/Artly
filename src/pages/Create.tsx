@@ -8,8 +8,6 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 type InputMethod = 'upload' | 'camera' | 'describe' | null
 type InputData = { image?: string; description?: string; method: InputMethod }
 type Material = { name: string; category: string; confidence: string }
@@ -29,8 +27,6 @@ interface Idea {
   paletteError?: boolean
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 const COLOUR_KEYWORDS = [
   'paint', 'watercolor', 'watercolour', 'acrylic', 'pastel', 'chalk',
   'crayon', 'ink', 'dye', 'charcoal', 'colored pencil', 'coloured pencil',
@@ -46,10 +42,78 @@ function filterColourMaterials(materials: Material[]): string[] {
 
 function savedKey(title: string) { return `artly_saved_${title}` }
 
+// ─── Build Unsplash search terms from idea title + materials ──────────────────
+
+function buildImageSearchTerms(ideaTitle: string): string {
+  // Get materials from localStorage
+  let materials: string[] = []
+  try {
+    const raw = localStorage.getItem('artly_detected_materials')
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      materials = parsed.map((m: any) => m.name?.toLowerCase() || '').filter(Boolean)
+    }
+  } catch {}
+
+  // Material → search keyword mapping
+  const materialKeywords: Record<string, string> = {
+    'air dry clay': 'clay,handmade,craft',
+    'clay': 'clay,pottery,handmade',
+    'acrylic paint': 'acrylic,painting,art',
+    'acrylic': 'acrylic,painting,art',
+    'watercolour': 'watercolour,painting,art',
+    'watercolor': 'watercolor,painting,art',
+    'oil paint': 'oil,painting,canvas',
+    'canvas': 'canvas,painting,art',
+    'pencil': 'pencil,sketch,drawing',
+    'charcoal': 'charcoal,sketch,drawing',
+    'ink': 'ink,drawing,art',
+    'pastel': 'pastel,art,drawing',
+    'marker': 'marker,illustration,art',
+    'collage': 'collage,mixed,media',
+    'paper': 'paper,craft,art',
+    'fabric': 'fabric,textile,craft',
+    'wood': 'wood,craft,handmade',
+    'leaves': 'botanical,leaves,nature',
+    'flowers': 'botanical,flowers,nature',
+    'pressed flowers': 'botanical,pressed,flowers',
+    'pressed leaves': 'botanical,pressed,leaves',
+    'resin': 'resin,art,handmade',
+    'plaster': 'sculpture,handmade,craft',
+  }
+
+  // Find best keyword match from materials
+  let materialTerms = ''
+  for (const mat of materials) {
+    for (const [key, val] of Object.entries(materialKeywords)) {
+      if (mat.includes(key) || key.includes(mat)) {
+        materialTerms = val
+        break
+      }
+    }
+    if (materialTerms) break
+  }
+
+  // Build terms from idea title keywords
+  const titleLower = ideaTitle.toLowerCase()
+  const titleTerms = titleLower
+    .replace(/[^a-z\s]/g, '')
+    .split(' ')
+    .filter(w => w.length > 3 && !['with', 'from', 'into', 'your', 'this', 'that', 'they', 'them', 'their'].includes(w))
+    .slice(0, 3)
+    .join(',')
+
+  // Combine: material terms take priority, title terms fill in
+  const combined = materialTerms
+    ? `${materialTerms},${titleTerms},DIY`
+    : `${titleTerms},handmade,craft,DIY`
+
+  return encodeURIComponent(combined)
+}
+
 // ─── GuestSaveSheet ───────────────────────────────────────────────────────────
 
 function GuestSaveSheet({ onClose, onSignIn }: { onClose: () => void; onSignIn: () => void }) {
-  const handleSignIn = () => { onSignIn() }
   return (
     <div
       style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
@@ -70,7 +134,7 @@ function GuestSaveSheet({ onClose, onSignIn }: { onClose: () => void; onSignIn: 
           </p>
         </div>
         <button
-          onClick={handleSignIn}
+          onClick={onSignIn}
           style={{ width: '100%', padding: '14px', borderRadius: 14, background: 'linear-gradient(135deg, #6C3CE1 0%, #FF3D71 100%)', border: 'none', cursor: 'pointer', fontSize: 15, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 12 }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24">
@@ -104,7 +168,9 @@ function IdeaCard({ idea, index, total, isSaved, onToggleSave, onStartProject }:
     advanced:     { bg: 'rgba(255,61,113,0.15)',  text: '#FF3D71', border: '#FF3D71' },
   }[idea.difficulty] || { bg: 'rgba(29,158,117,0.15)', text: '#1D9E75', border: '#1D9E75' }
 
-  const seed = encodeURIComponent(idea.title.replace(/\s+/g, '-').toLowerCase())
+  // Build smart Unsplash search URL from idea title + localStorage materials
+  const searchTerms = buildImageSearchTerms(idea.title)
+  const imageUrl = `https://source.unsplash.com/600x320/?${searchTerms}`
 
   return (
     <div style={{ background: 'var(--color-surface)', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(108,60,225,0.2)', width: '100%' }}>
@@ -112,16 +178,19 @@ function IdeaCard({ idea, index, total, isSaved, onToggleSave, onStartProject }:
       {/* Image */}
       <div style={{ position: 'relative' }}>
         <img
-          src={`https://picsum.photos/seed/${seed}/600/320`}
+          src={imageUrl}
           alt={idea.title}
           style={{ width: '100%', height: 220, objectFit: 'cover', display: 'block' }}
+          onError={e => {
+            // Fallback to picsum if Unsplash fails
+            const seed = encodeURIComponent(idea.title.replace(/\s+/g, '-').toLowerCase())
+            ;(e.target as HTMLImageElement).src = `https://picsum.photos/seed/${seed}/600/320`
+          }}
         />
-        {/* Badge */}
         <div style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(108,60,225,0.85)', backdropFilter: 'blur(6px)', borderRadius: 20, padding: '4px 12px', display: 'flex', alignItems: 'center', gap: 5 }}>
           <Sparkles size={12} color="#c4b0ff" />
           <span style={{ fontSize: 11, fontWeight: 600, color: '#c4b0ff' }}>Generated for you</span>
         </div>
-        {/* Heart */}
         <button
           onClick={e => { e.stopPropagation(); onToggleSave() }}
           style={{ position: 'absolute', top: 12, right: 12, width: 38, height: 38, borderRadius: '50%', background: isSaved ? '#FF3D71' : 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)', border: isSaved ? 'none' : '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -180,7 +249,6 @@ function IdeaCard({ idea, index, total, isSaved, onToggleSave, onStartProject }:
   )
 }
 
-
 // ─── MixHintLine ──────────────────────────────────────────────────────────────
 
 function MixHintLine({ hint }: { hint: string }) {
@@ -228,7 +296,6 @@ export default function Create() {
   const { user, signInWithGoogle } = useAuth()
   const isGuest = () => !user
 
-  // ── Load existing saved state from localStorage on mount ──
   useEffect(() => {
     const existing: Record<string, boolean> = {}
     for (let i = 0; i < localStorage.length; i++) {
@@ -361,7 +428,6 @@ export default function Create() {
     }
   }
 
-  // ── FIXED: persist heart saves to localStorage ──
   const handleToggleSave = (idea: Idea) => {
     if (isGuest()) { setShowGuestSheet(true); return }
     const key = savedKey(idea.title)
@@ -401,7 +467,6 @@ export default function Create() {
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
       <div style={s.wrap}>
 
-        {/* ── SELECTION ── */}
         {currentScreen === 'selection' && !selectedMethod && (
           <>
             <h1 style={s.heading}>What would you like to <span style={{ color: 'var(--color-accent)' }}>use?</span></h1>
@@ -461,7 +526,6 @@ export default function Create() {
           </>
         )}
 
-        {/* ── UPLOAD PREVIEW ── */}
         {currentScreen === 'selection' && selectedMethod === 'upload' && inputData.image && (
           <>
             <h1 style={s.heading}>What do you have?</h1>
@@ -487,7 +551,6 @@ export default function Create() {
           </>
         )}
 
-        {/* ── CAMERA LIVE ── */}
         {currentScreen === 'selection' && selectedMethod === 'camera' && !inputData.image && (
           <div style={{ backgroundColor: 'var(--color-surface)', borderRadius: 16, padding: 16 }}>
             <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text)', marginBottom: 12 }}>Take a Photo</h3>
@@ -499,7 +562,6 @@ export default function Create() {
           </div>
         )}
 
-        {/* ── CAMERA CAPTURED ── */}
         {currentScreen === 'selection' && selectedMethod === 'camera' && inputData.image && (
           <>
             <div style={{ backgroundColor: 'var(--color-surface)', borderRadius: 16, padding: 16, marginBottom: 12 }}>
@@ -513,7 +575,6 @@ export default function Create() {
           </>
         )}
 
-        {/* ── DESCRIBE ── */}
         {currentScreen === 'selection' && selectedMethod === 'describe' && (
           <>
             <h1 style={s.heading}>What do you have?</h1>
@@ -555,7 +616,6 @@ export default function Create() {
           </>
         )}
 
-        {/* ── DETECTING ── */}
         {currentScreen === 'detecting' && (
           <div style={{ backgroundColor: 'var(--color-surface)', borderRadius: 20, padding: '48px 24px', textAlign: 'center' }}>
             <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'linear-gradient(135deg,#6C3CE1,#FF3D71)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', animation: 'spin 1s linear infinite' }}>
@@ -566,7 +626,6 @@ export default function Create() {
           </div>
         )}
 
-        {/* ── CONFIRMATION ── */}
         {currentScreen === 'confirmation' && (
           <div style={{ backgroundColor: 'var(--color-surface)', borderRadius: 20, padding: 20 }}>
             <h3 style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-text)', marginBottom: 16 }}>We found these materials</h3>
@@ -593,7 +652,6 @@ export default function Create() {
           </div>
         )}
 
-        {/* ── IDEAS CAROUSEL ── */}
         {currentScreen === 'ideas' && (
           <>
             <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 20 }}>
@@ -601,7 +659,6 @@ export default function Create() {
                 <div key={i} style={{ height: 4, borderRadius: 2, background: i === 0 ? '#6C3CE1' : 'rgba(255,255,255,0.15)', width: i === 0 ? 24 : 16, transition: 'all 0.3s' }} />
               ))}
             </div>
-
             <h1 style={{ fontSize: 'clamp(20px,5vw,26px)', fontWeight: 800, margin: '0 0 6px', textAlign: 'center', background: 'linear-gradient(90deg,#6C3CE1,#FF3D71)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
               Here's what you can create ✦
             </h1>
@@ -646,27 +703,16 @@ export default function Create() {
               <>
                 <div style={{ position: 'relative' }}>
                   {activeIndex > 0 && (
-                    <button
-                      onClick={() => setActiveIndex(i => i - 1)}
-                      style={{ position: 'absolute', left: 10, top: 90, zIndex: 10, width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    >
+                    <button onClick={() => setActiveIndex(i => i - 1)} style={{ position: 'absolute', left: 10, top: 90, zIndex: 10, width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <ChevronLeft size={18} color="#fff" />
                     </button>
                   )}
                   {activeIndex < ideas.length - 1 && (
-                    <button
-                      onClick={() => setActiveIndex(i => i + 1)}
-                      style={{ position: 'absolute', right: 10, top: 90, zIndex: 10, width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    >
+                    <button onClick={() => setActiveIndex(i => i + 1)} style={{ position: 'absolute', right: 10, top: 90, zIndex: 10, width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <ChevronRight size={18} color="#fff" />
                     </button>
                   )}
-                  <div
-                    ref={carouselRef}
-                    onTouchStart={handleTouchStart}
-                    onTouchEnd={handleTouchEnd}
-                    style={{ overflow: 'hidden', marginBottom: 16 }}
-                  >
+                  <div ref={carouselRef} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} style={{ overflow: 'hidden', marginBottom: 16 }}>
                     <div style={{ display: 'flex', transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)', transform: `translateX(-${activeIndex * 100}%)` }}>
                       {ideas.map((idea, idx) => (
                         <div key={idx} style={{ minWidth: '100%' }}>
@@ -686,7 +732,6 @@ export default function Create() {
                     </div>
                   </div>
                 </div>
-
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 8 }}>
                   {ideas.map((_, i) => (
                     <button key={i} onClick={() => setActiveIndex(i)} style={{ width: i === activeIndex ? 20 : 8, height: 8, borderRadius: 4, background: i === activeIndex ? '#6C3CE1' : 'rgba(255,255,255,0.2)', border: 'none', cursor: 'pointer', padding: 0, transition: 'all 0.3s' }} />
@@ -706,7 +751,6 @@ export default function Create() {
           </>
         )}
 
-        {/* ── ERROR ── */}
         {currentScreen === 'error' && (
           <div style={{ backgroundColor: 'var(--color-surface)', borderRadius: 20, padding: '32px 24px', textAlign: 'center' }}>
             <h3 style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-text)', marginBottom: 8 }}>
