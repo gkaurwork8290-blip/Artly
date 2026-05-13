@@ -393,6 +393,8 @@ export default function Create() {
       setIdeas(prev => prev.map((it, i) => i === idx ? { ...it, imageUrl: '', imageLoading: false } : it))
     }
   }
+
+  const handleToggleSave = (idea: Idea) => {
     if (isGuest()) { setShowGuestSheet(true); return }
     const key = savedKey(idea.title)
     const next = !savedIdeas[key]
