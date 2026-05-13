@@ -4,7 +4,7 @@ function normaliseSkill(skill: string): 'beginner' | 'intermediate' | 'advanced'
   const s = (skill || '').toLowerCase().trim();
   if (s === 'intermediate') return 'intermediate';
   if (s === 'advanced' || s === 'professional') return 'advanced';
-  return 'beginner'; // beginner, hobbyist, or anything else
+  return 'beginner';
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -33,6 +33,7 @@ Return ONLY a valid JSON array with no markdown, no explanation:
   "difficulty": "beginner" | "intermediate" | "advanced",
   "estimatedTime": "string e.g. 45 minutes or 2-3 hours",
   "materialsUsed": "string — short summary e.g. Uses your brushes, paper, and paints",
+  "imageKeywords": "string — 4-5 comma-separated Pixabay search keywords that would find an inspiring photo for this exact project. Use specific art/craft terms. Examples: 'watercolour, landscape, painting, art' or 'air dry clay, handmade, texture, craft, diy' or 'pencil, sketch, portrait, drawing, art'",
   "steps": [
     {
       "title": "string — short action e.g. Arrange your leaves",
@@ -42,7 +43,8 @@ Return ONLY a valid JSON array with no markdown, no explanation:
   ]
 }]
 
-Generate 4-6 steps per idea. Steps must be practical and specific to the materials listed.`;
+Generate 4-6 steps per idea. Steps must be practical and specific to the materials listed.
+For imageKeywords: think like someone searching Pixabay for inspiration photos — use the most visually descriptive art/craft terms for that specific project.`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {

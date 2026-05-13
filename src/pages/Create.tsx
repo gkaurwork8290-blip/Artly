@@ -21,6 +21,7 @@ interface Idea {
   estimatedTime: string
   steps: string[]
   materialsUsed?: string
+  imageKeywords?: string
   palette?: PaletteColour[]
   mixHint?: string
   paletteLoading?: boolean
@@ -365,24 +366,22 @@ export default function Create() {
   }
 
   const loadImage = async (idea: Idea, idx: number) => {
-    // Check localStorage cache first
     const cacheKey = `artly_img_${idea.title.replace(/\s+/g, '_').toLowerCase()}`
     const cached = localStorage.getItem(cacheKey)
     if (cached) {
       setIdeas(prev => prev.map((it, i) => i === idx ? { ...it, imageUrl: cached, imageLoading: false } : it))
       return
     }
+    // Only fetch if Claude provided imageKeywords
+    if (!idea.imageKeywords) {
+      setIdeas(prev => prev.map((it, i) => i === idx ? { ...it, imageLoading: false } : it))
+      return
+    }
     try {
-      let materials: string[] = []
-      try {
-        const raw = localStorage.getItem('artly_detected_materials')
-        if (raw) materials = JSON.parse(raw).map((m: any) => m.name || '')
-      } catch {}
-
       const res = await fetch('/api/get-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ideaTitle: idea.title, materials }),
+        body: JSON.stringify({ imageKeywords: idea.imageKeywords }),
       })
       if (!res.ok) throw new Error('Image API failed')
       const data = await res.json()
