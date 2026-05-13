@@ -1,274 +1,705 @@
-// @ts-nocheck
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Settings, Heart, BookOpen, Moon, Sun,
-  GraduationCap, Bell, Globe, LogOut, ChevronRight,
-  Edit2, Check, User, Sparkles
-} from 'lucide-react'
-import { useAuth } from '../contexts/AuthContext'
+  User,
+  Moon,
+  Sun,
+  Bell,
+  BellOff,
+  ChevronRight,
+  LogOut,
+  LogIn,
+  BookOpen,
+  Layers,
+  Star,
+  X,
+} from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
-const SKILL_LEVELS = ['Beginner', 'Intermediate', 'Advanced']
+const SKILL_LEVELS = ['Beginner', 'Hobbyist', 'Intermediate', 'Advanced', 'Professional'];
 
-function StatCard({ icon, value, label, sub, color }) {
-  return (
-    <div style={{ flex: 1, background: 'var(--color-bg)', borderRadius: 16, padding: '14px 12px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.04)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 4 }}>
-        {icon}
-        <span style={{ fontSize: 22, fontWeight: 800, color }}>{value}</span>
-      </div>
-      <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text)', margin: '0 0 2px' }}>{label}</p>
-      <p style={{ fontSize: 10, color: 'var(--color-text-3)', margin: 0 }}>{sub}</p>
-    </div>
-  )
-}
+const LANGUAGES = ['English'];
 
-function SettingRow({ icon, label, value, onClick, danger }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '15px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.04)' }}
-    >
-      <div style={{ width: 32, height: 32, borderRadius: 10, background: danger ? 'rgba(255,61,113,0.1)' : 'rgba(108,60,225,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        {icon}
-      </div>
-      <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: danger ? '#FF3D71' : 'var(--color-text)' }}>{label}</span>
-      {value && <span style={{ fontSize: 13, color: '#6C3CE1', fontWeight: 600, marginRight: 4 }}>{value}</span>}
-      <ChevronRight size={16} color={danger ? '#FF3D71' : 'var(--color-text-3)'} />
-    </button>
-  )
+function getStats() {
+  const journalRaw = localStorage.getItem('artly_journal_entries');
+  const journal: unknown[] = journalRaw ? JSON.parse(journalRaw) : [];
+
+  // Count saved projects (keys starting with artly_saved_)
+  const savedCount = Object.keys(localStorage).filter((k) =>
+    k.startsWith('artly_saved_')
+  ).length;
+
+  // Sessions: rough proxy — count unique days from journal
+  const sessions = journal.length > 0 ? Math.max(journal.length, 1) : 0;
+
+  return {
+    sessions,
+    saved: savedCount,
+    journal: journal.length,
+  };
 }
 
 export default function Profile() {
-  const navigate = useNavigate()
-  const { user, signOut, signInWithGoogle } = useAuth()
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
 
-  const [theme, setTheme] = useState('dark')
-  const [skillLevel, setSkillLevel] = useState('Beginner')
-  const [showSkillPicker, setShowSkillPicker] = useState(false)
-  const [stats, setStats] = useState({ sessions: 0, saved: 0, journal: 0 })
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [skill, setSkill] = useState('Beginner');
+  const [notifications, setNotifications] = useState(false);
+  const [language] = useState('English');
+  const [showSkillSheet, setShowSkillSheet] = useState(false);
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
+  const stats = getStats();
 
+  // Load persisted prefs
   useEffect(() => {
-    const savedTheme = localStorage.getItem('artly_theme') || 'dark'
-    setTheme(savedTheme)
+    const t = localStorage.getItem('artly_theme');
+    if (t === 'light' || t === 'dark') setTheme(t);
 
-    const skill = localStorage.getItem('artly_skill') || 'beginner'
-    setSkillLevel(skill.charAt(0).toUpperCase() + skill.slice(1))
+    const s = localStorage.getItem('artly_skill');
+    if (s) setSkill(s);
 
-    try {
-      const journal = JSON.parse(localStorage.getItem('artly_journal_entries') || '[]')
-      const savedCount = Object.keys(localStorage).filter(k => k.startsWith('artly_saved_') && localStorage.getItem(k) === 'true').length
-      setStats({ sessions: journal.length, saved: savedCount, journal: journal.length })
-    } catch {}
-  }, [])
+    const n = localStorage.getItem('artly_notifications');
+    if (n === 'true') setNotifications(true);
+  }, []);
 
-  const applyTheme = (t) => {
-    setTheme(t)
-    localStorage.setItem('artly_theme', t)
-    if (t === 'light') document.body.classList.add('theme-light')
-    else document.body.classList.remove('theme-light')
+  // Apply theme
+  useEffect(() => {
+    if (theme === 'light') {
+      document.body.classList.add('theme-light');
+    } else {
+      document.body.classList.remove('theme-light');
+    }
+    localStorage.setItem('artly_theme', theme);
+  }, [theme]);
+
+  function handleSkillSelect(s: string) {
+    setSkill(s);
+    localStorage.setItem('artly_skill', s);
+    setShowSkillSheet(false);
   }
 
-  const handleSkillChange = (level) => {
-    setSkillLevel(level)
-    localStorage.setItem('artly_skill', level.toLowerCase())
-    setShowSkillPicker(false)
+  function handleNotificationsToggle() {
+    const next = !notifications;
+    setNotifications(next);
+    localStorage.setItem('artly_notifications', String(next));
   }
 
-  const handleSignOut = async () => {
-    await signOut()
-    navigate('/')
+  async function handleSignOut() {
+    await signOut();
+    setShowSignOutConfirm(false);
+    navigate('/');
   }
 
+  // ── Avatar initials
   const initials = user?.user_metadata?.full_name
-    ? user.user_metadata.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
-    : user?.email?.[0]?.toUpperCase() || 'G'
-  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Guest'
-  const avatarUrl = user?.user_metadata?.avatar_url
+    ? user.user_metadata.full_name
+        .split(' ')
+        .map((w: string) => w[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
+    : '?';
 
-  // ── Guest state ──
-  if (!user) {
-    return (
-      <div style={{ minHeight: '100dvh', background: 'var(--color-bg)', paddingBottom: 100 }}>
-        <div style={{ maxWidth: 640, margin: '0 auto', padding: '20px 16px' }}>
-          <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--color-text)', margin: '0 0 24px' }}>Profile</h1>
-
-          {/* Sign in card */}
-          <div style={{ background: 'var(--color-surface)', borderRadius: 20, padding: '32px 20px', textAlign: 'center', marginBottom: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
-            <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(108,60,225,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-              <User size={32} color="#6C3CE1" />
-            </div>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text)', margin: '0 0 8px' }}>You're browsing as a guest</h2>
-            <p style={{ fontSize: 13, color: 'var(--color-text-2)', margin: '0 0 24px', lineHeight: 1.6 }}>Sign in to save your progress and sync across devices.</p>
-            <button onClick={signInWithGoogle} style={{ width: '100%', padding: '14px', borderRadius: 14, background: 'linear-gradient(135deg,#6C3CE1,#FF3D71)', border: 'none', cursor: 'pointer', fontSize: 15, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-              <svg width="18" height="18" viewBox="0 0 24 24">
-                <path fill="#fff" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                <path fill="#fff" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                <path fill="#fff" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
-                <path fill="#fff" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-              </svg>
-              Continue with Google
-            </button>
-          </div>
-
-          <AppearanceSection theme={theme} applyTheme={applyTheme} />
-          <SkillSection skillLevel={skillLevel} showSkillPicker={showSkillPicker} setShowSkillPicker={setShowSkillPicker} handleSkillChange={handleSkillChange} />
-        </div>
-      </div>
-    )
-  }
+  const displayName = user?.user_metadata?.full_name ?? user?.email ?? 'Guest';
+  const displayEmail = user?.email ?? null;
+  const avatarUrl = user?.user_metadata?.avatar_url ?? null;
 
   return (
-    <div style={{ minHeight: '100dvh', background: 'var(--color-bg)', paddingBottom: 100 }}>
-      <div style={{ maxWidth: 640, margin: '0 auto', padding: '20px 16px' }}>
-
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--color-text)', margin: 0 }}>Profile</h1>
-          <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--color-surface)', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Settings size={18} color="var(--color-text-2)" />
-          </div>
+    <div className="profile-page" style={{ paddingBottom: 96 }}>
+      {/* ── Header */}
+      <div className="profile-header">
+        <div className="profile-avatar-wrap">
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="avatar" className="profile-avatar-img" />
+          ) : (
+            <div className="profile-avatar-initials">
+              {user ? initials : <User size={28} color="var(--color-text-2)" />}
+            </div>
+          )}
         </div>
 
-        {/* User card */}
-        <div style={{ background: 'var(--color-surface)', borderRadius: 20, padding: '20px 16px', marginBottom: 16, border: '1px solid rgba(255,255,255,0.06)' }}>
-          <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', marginBottom: 4 }}>
-            {/* Avatar */}
-            {avatarUrl ? (
-              <img src={avatarUrl} alt={displayName} style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-            ) : (
-              <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg,#6C3CE1,#8B5CF6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <span style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>{initials}</span>
-              </div>
+        {user ? (
+          <>
+            <h1 className="profile-name">{displayName}</h1>
+            {displayEmail && (
+              <p className="profile-email">{displayEmail}</p>
             )}
-            <div style={{ flex: 1 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--color-text)', margin: '0 0 2px' }}>{displayName}</h2>
-              <p style={{ fontSize: 13, color: 'var(--color-text-2)', margin: '0 0 6px' }}>{skillLevel} artist</p>
-              <p style={{ fontSize: 12, color: 'var(--color-text-3)', margin: 0, lineHeight: 1.5 }}>Exploring colours, textures and creating through art.</p>
+            {/* Stats row */}
+            <div className="profile-stats-row">
+              <div className="profile-stat">
+                <span className="profile-stat-value">{stats.sessions}</span>
+                <span className="profile-stat-label">Sessions</span>
+              </div>
+              <div className="profile-stat-divider" />
+              <div className="profile-stat">
+                <span className="profile-stat-value">{stats.saved}</span>
+                <span className="profile-stat-label">Saved</span>
+              </div>
+              <div className="profile-stat-divider" />
+              <div className="profile-stat">
+                <span className="profile-stat-value">{stats.journal}</span>
+                <span className="profile-stat-label">Journal</span>
+              </div>
             </div>
+          </>
+        ) : (
+          <>
+            <h1 className="profile-name">Guest</h1>
+            <p className="profile-email-sub">Sign in to save your work</p>
+            {/* Sign-in card */}
+            <button
+              className="profile-signin-card"
+              onClick={() => navigate('/onboarding')}
+            >
+              <LogIn size={18} color="var(--color-primary)" />
+              <span>Sign in or create account</span>
+              <ChevronRight size={16} color="var(--color-text-2)" />
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* ── Appearance Section */}
+      <section className="profile-section">
+        <h2 className="profile-section-title">Appearance</h2>
+
+        {/* Theme switcher */}
+        <div className="profile-row">
+          <div className="profile-row-left">
+            {theme === 'dark' ? (
+              <Moon size={18} color="var(--color-primary)" />
+            ) : (
+              <Sun size={18} color="var(--color-warning)" />
+            )}
+            <span className="profile-row-label">Theme</span>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <button style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', color: '#6C3CE1', fontSize: 13, fontWeight: 600 }}>
-              <Edit2 size={13} color="#6C3CE1" /> Edit
+          <div className="theme-toggle-pill">
+            <button
+              className={`theme-pill-btn${theme === 'dark' ? ' active' : ''}`}
+              onClick={() => setTheme('dark')}
+            >
+              Artisan Dark
+            </button>
+            <button
+              className={`theme-pill-btn${theme === 'light' ? ' active' : ''}`}
+              onClick={() => setTheme('light')}
+            >
+              Studio Light
             </button>
           </div>
         </div>
+      </section>
 
-        {/* Stats row */}
-        <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
-          <StatCard icon={<Sparkles size={18} color="#6C3CE1" />} value={stats.sessions} label="Sessions" sub="Keep creating!" color="#6C3CE1" />
-          <StatCard icon={<Heart size={18} color="#FF3D71" />} value={stats.saved} label="Saved" sub="Your favorites" color="#FF3D71" />
-          <StatCard icon={<BookOpen size={18} color="#1D9E75" />} value={stats.journal} label="Journal entries" sub="Keep reflecting" color="#1D9E75" />
+      {/* ── Preferences Section */}
+      <section className="profile-section">
+        <h2 className="profile-section-title">Preferences</h2>
+
+        {/* Skill level */}
+        <button
+          className="profile-row profile-row-btn"
+          onClick={() => setShowSkillSheet(true)}
+        >
+          <div className="profile-row-left">
+            <Star size={18} color="var(--color-warning)" />
+            <span className="profile-row-label">Skill Level</span>
+          </div>
+          <div className="profile-row-right">
+            <span className="profile-row-value">{skill}</span>
+            <ChevronRight size={16} color="var(--color-text-2)" />
+          </div>
+        </button>
+
+        {/* Notifications */}
+        <div className="profile-row">
+          <div className="profile-row-left">
+            {notifications ? (
+              <Bell size={18} color="var(--color-success)" />
+            ) : (
+              <BellOff size={18} color="var(--color-text-2)" />
+            )}
+            <span className="profile-row-label">Notifications</span>
+          </div>
+          <button
+            className={`toggle-switch${notifications ? ' on' : ''}`}
+            onClick={handleNotificationsToggle}
+            aria-label="Toggle notifications"
+          >
+            <span className="toggle-knob" />
+          </button>
         </div>
 
-        {/* Appearance */}
-        <AppearanceSection theme={theme} applyTheme={applyTheme} />
-
-        {/* Settings */}
-        <SkillSection skillLevel={skillLevel} showSkillPicker={showSkillPicker} setShowSkillPicker={setShowSkillPicker} handleSkillChange={handleSkillChange} />
-
-        {/* Sign out */}
-        <div style={{ background: 'var(--color-surface)', borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)', marginBottom: 16 }}>
-          <SettingRow
-            icon={<LogOut size={16} color="#FF3D71" />}
-            label="Sign out"
-            danger
-            onClick={handleSignOut}
-          />
+        {/* Language */}
+        <div className="profile-row">
+          <div className="profile-row-left">
+            <BookOpen size={18} color="var(--color-text-2)" />
+            <span className="profile-row-label">Language</span>
+          </div>
+          <div className="profile-row-right">
+            <span className="profile-row-value">{language}</span>
+          </div>
         </div>
+      </section>
 
-      </div>
+      {/* ── About Section */}
+      <section className="profile-section">
+        <h2 className="profile-section-title">About</h2>
 
-      {/* Skill picker sheet */}
-      {showSkillPicker && (
-        <div onClick={() => setShowSkillPicker(false)} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, background: 'var(--color-surface)', borderRadius: '24px 24px 0 0', padding: '24px 20px 44px' }}>
-            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--color-text-3)', margin: '0 auto 20px' }} />
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text)', margin: '0 0 16px' }}>Select skill level</h3>
-            {SKILL_LEVELS.map(level => (
-              <button key={level} onClick={() => handleSkillChange(level)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: skillLevel === level ? 'rgba(108,60,225,0.1)' : 'transparent', border: `1px solid ${skillLevel === level ? '#6C3CE1' : 'rgba(255,255,255,0.06)'}`, borderRadius: 14, marginBottom: 8, cursor: 'pointer' }}>
-                <span style={{ fontSize: 14, fontWeight: 600, color: skillLevel === level ? '#6C3CE1' : 'var(--color-text)' }}>{level}</span>
-                {skillLevel === level && <Check size={16} color="#6C3CE1" />}
+        <div className="profile-row">
+          <div className="profile-row-left">
+            <Layers size={18} color="var(--color-text-2)" />
+            <span className="profile-row-label">Version</span>
+          </div>
+          <div className="profile-row-right">
+            <span className="profile-row-value">1.0.0-beta</span>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Sign out */}
+      {user && (
+        <section className="profile-section">
+          <button
+            className="profile-signout-btn"
+            onClick={() => setShowSignOutConfirm(true)}
+          >
+            <LogOut size={18} />
+            <span>Sign Out</span>
+          </button>
+        </section>
+      )}
+
+      {/* ── Skill Bottom Sheet */}
+      {showSkillSheet && (
+        <div className="bottom-sheet-backdrop" onClick={() => setShowSkillSheet(false)}>
+          <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="bottom-sheet-handle" />
+            <div className="bottom-sheet-header">
+              <h3 className="bottom-sheet-title">Skill Level</h3>
+              <button
+                className="bottom-sheet-close"
+                onClick={() => setShowSkillSheet(false)}
+              >
+                <X size={20} color="var(--color-text-2)" />
               </button>
-            ))}
+            </div>
+            <div className="bottom-sheet-options">
+              {SKILL_LEVELS.map((s) => (
+                <button
+                  key={s}
+                  className={`skill-option${skill === s ? ' selected' : ''}`}
+                  onClick={() => handleSkillSelect(s)}
+                >
+                  <span>{s}</span>
+                  {skill === s && (
+                    <span className="skill-check">✓</span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
-    </div>
-  )
-}
 
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-function AppearanceSection({ theme, applyTheme }) {
-  return (
-    <div style={{ marginBottom: 20 }}>
-      <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text)', margin: '0 0 12px' }}>Appearance</h2>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        {/* Artisan Dark */}
-        <button
-          onClick={() => applyTheme('dark')}
-          style={{ background: '#0F0F1A', border: `2px solid ${theme === 'dark' ? '#6C3CE1' : 'rgba(255,255,255,0.08)'}`, borderRadius: 18, padding: '20px 16px', cursor: 'pointer', position: 'relative', textAlign: 'left' }}
+      {/* ── Sign Out Confirm Sheet */}
+      {showSignOutConfirm && (
+        <div
+          className="bottom-sheet-backdrop"
+          onClick={() => setShowSignOutConfirm(false)}
         >
-          {theme === 'dark' && (
-            <div style={{ position: 'absolute', top: 10, right: 10, width: 22, height: 22, borderRadius: '50%', background: '#6C3CE1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Check size={13} color="#fff" />
+          <div className="bottom-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="bottom-sheet-handle" />
+            <div className="bottom-sheet-header">
+              <h3 className="bottom-sheet-title">Sign Out?</h3>
+              <button
+                className="bottom-sheet-close"
+                onClick={() => setShowSignOutConfirm(false)}
+              >
+                <X size={20} color="var(--color-text-2)" />
+              </button>
             </div>
-          )}
-          <Moon size={28} color="#6C3CE1" style={{ marginBottom: 10, display: 'block' }} />
-          <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: '0 0 3px' }}>Artisan Dark</p>
-          <p style={{ fontSize: 11, color: '#A0A0C0', margin: 0 }}>Dark theme</p>
-        </button>
-
-        {/* Studio Light */}
-        <button
-          onClick={() => applyTheme('light')}
-          style={{ background: '#EDE5D8', border: `2px solid ${theme === 'light' ? '#B05E3A' : 'rgba(0,0,0,0.08)'}`, borderRadius: 18, padding: '20px 16px', cursor: 'pointer', position: 'relative', textAlign: 'left' }}
-        >
-          {theme === 'light' && (
-            <div style={{ position: 'absolute', top: 10, right: 10, width: 22, height: 22, borderRadius: '50%', background: '#B05E3A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Check size={13} color="#fff" />
+            <p className="bottom-sheet-body">
+              Your saved ideas and journal entries are stored locally and won't be lost.
+            </p>
+            <div className="bottom-sheet-actions">
+              <button className="sheet-btn-secondary" onClick={() => setShowSignOutConfirm(false)}>
+                Cancel
+              </button>
+              <button className="sheet-btn-danger" onClick={handleSignOut}>
+                Sign Out
+              </button>
             </div>
-          )}
-          <Sun size={28} color="#B07820" style={{ marginBottom: 10, display: 'block' }} />
-          <p style={{ fontSize: 14, fontWeight: 700, color: '#1C1209', margin: '0 0 3px' }}>Studio Light</p>
-          <p style={{ fontSize: 11, color: '#6A5240', margin: 0 }}>Light theme</p>
-        </button>
-      </div>
-    </div>
-  )
-}
+          </div>
+        </div>
+      )}
 
-function SkillSection({ skillLevel, showSkillPicker, setShowSkillPicker, handleSkillChange }) {
-  return (
-    <div style={{ marginBottom: 16 }}>
-      <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text)', margin: '0 0 12px' }}>Settings</h2>
-      <div style={{ background: 'var(--color-surface)', borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}>
-        <button onClick={() => setShowSkillPicker(true)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '15px 16px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}>
-          <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(108,60,225,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <GraduationCap size={16} color="#6C3CE1" />
-          </div>
-          <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: 'var(--color-text)', textAlign: 'left' }}>Skill level</span>
-          <span style={{ fontSize: 13, color: '#6C3CE1', fontWeight: 600 }}>{skillLevel}</span>
-          <ChevronRight size={16} color="var(--color-text-3)" />
-        </button>
-        <button style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '15px 16px', background: 'none', border: 'none', borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}>
-          <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(108,60,225,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Bell size={16} color="#6C3CE1" />
-          </div>
-          <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: 'var(--color-text)', textAlign: 'left' }}>Notifications</span>
-          <span style={{ fontSize: 13, color: '#6C3CE1', fontWeight: 600 }}>On</span>
-          <ChevronRight size={16} color="var(--color-text-3)" />
-        </button>
-        <button style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '15px 16px', background: 'none', border: 'none', cursor: 'pointer' }}>
-          <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(108,60,225,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Globe size={16} color="#6C3CE1" />
-          </div>
-          <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: 'var(--color-text)', textAlign: 'left' }}>Language</span>
-          <span style={{ fontSize: 13, color: '#6C3CE1', fontWeight: 600 }}>English</span>
-          <ChevronRight size={16} color="var(--color-text-3)" />
-        </button>
-      </div>
+      <style>{`
+        .profile-page {
+          min-height: 100vh;
+          background: var(--color-bg);
+          color: var(--color-text);
+          max-width: 480px;
+          margin: 0 auto;
+          padding: 0 0 96px;
+        }
+
+        /* ── Header */
+        .profile-header {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 48px 24px 28px;
+          text-align: center;
+          border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .theme-light .profile-header {
+          border-bottom-color: rgba(0,0,0,0.08);
+        }
+
+        .profile-avatar-wrap {
+          margin-bottom: 14px;
+        }
+        .profile-avatar-img {
+          width: 72px;
+          height: 72px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 2px solid var(--color-primary);
+        }
+        .profile-avatar-initials {
+          width: 72px;
+          height: 72px;
+          border-radius: 50%;
+          background: var(--color-surface);
+          border: 2px solid var(--color-primary);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: var(--fs-h1);
+          font-weight: 700;
+          color: var(--color-primary);
+          letter-spacing: 1px;
+        }
+
+        .profile-name {
+          font-size: var(--fs-h1);
+          font-weight: 700;
+          color: var(--color-text);
+          margin: 0 0 4px;
+        }
+        .profile-email {
+          font-size: var(--fs-caption);
+          color: var(--color-text-2);
+          margin: 0 0 20px;
+        }
+        .profile-email-sub {
+          font-size: var(--fs-caption);
+          color: var(--color-text-2);
+          margin: 4px 0 16px;
+        }
+
+        /* Stats */
+        .profile-stats-row {
+          display: flex;
+          align-items: center;
+          gap: 0;
+          background: var(--color-surface);
+          border-radius: 14px;
+          padding: 14px 24px;
+          min-width: 240px;
+        }
+        .profile-stat {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 2px;
+        }
+        .profile-stat-value {
+          font-size: var(--fs-h1);
+          font-weight: 700;
+          color: var(--color-text);
+        }
+        .profile-stat-label {
+          font-size: var(--fs-micro);
+          color: var(--color-text-2);
+          text-transform: uppercase;
+          letter-spacing: 0.6px;
+        }
+        .profile-stat-divider {
+          width: 1px;
+          height: 28px;
+          background: rgba(255,255,255,0.1);
+        }
+        .theme-light .profile-stat-divider {
+          background: rgba(0,0,0,0.1);
+        }
+
+        /* Sign-in card */
+        .profile-signin-card {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          background: var(--color-surface);
+          border: 1px solid rgba(108,60,225,0.3);
+          border-radius: 14px;
+          padding: 14px 18px;
+          width: 100%;
+          max-width: 320px;
+          cursor: pointer;
+          font-size: var(--fs-body);
+          color: var(--color-text);
+          margin-top: 4px;
+        }
+        .profile-signin-card span {
+          flex: 1;
+          text-align: left;
+        }
+        .profile-signin-card:active {
+          opacity: 0.85;
+        }
+
+        /* ── Sections */
+        .profile-section {
+          padding: 20px 20px 0;
+        }
+        .profile-section-title {
+          font-size: var(--fs-caption);
+          font-weight: 600;
+          color: var(--color-text-2);
+          text-transform: uppercase;
+          letter-spacing: 0.8px;
+          margin: 0 0 10px 4px;
+        }
+
+        /* ── Rows */
+        .profile-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 14px 16px;
+          background: var(--color-surface);
+          border-radius: 12px;
+          margin-bottom: 8px;
+          border: none;
+          width: 100%;
+          cursor: default;
+          color: var(--color-text);
+        }
+        .profile-row-btn {
+          cursor: pointer;
+          text-align: left;
+        }
+        .profile-row-btn:active {
+          opacity: 0.8;
+        }
+        .profile-row-left {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .profile-row-right {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .profile-row-label {
+          font-size: var(--fs-body);
+          color: var(--color-text);
+        }
+        .profile-row-value {
+          font-size: var(--fs-body);
+          color: var(--color-text-2);
+        }
+
+        /* ── Theme toggle pill */
+        .theme-toggle-pill {
+          display: flex;
+          background: var(--color-bg);
+          border-radius: 10px;
+          padding: 3px;
+          gap: 2px;
+        }
+        .theme-pill-btn {
+          padding: 5px 10px;
+          border-radius: 8px;
+          font-size: var(--fs-caption);
+          font-weight: 500;
+          color: var(--color-text-2);
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          transition: all 0.2s;
+          white-space: nowrap;
+        }
+        .theme-pill-btn.active {
+          background: var(--color-primary);
+          color: #fff;
+        }
+
+        /* ── Toggle switch */
+        .toggle-switch {
+          width: 44px;
+          height: 24px;
+          border-radius: 12px;
+          background: var(--color-text-3);
+          border: none;
+          cursor: pointer;
+          position: relative;
+          transition: background 0.25s;
+          flex-shrink: 0;
+        }
+        .toggle-switch.on {
+          background: var(--color-success);
+        }
+        .toggle-knob {
+          position: absolute;
+          top: 3px;
+          left: 3px;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: #fff;
+          transition: transform 0.25s;
+          display: block;
+        }
+        .toggle-switch.on .toggle-knob {
+          transform: translateX(20px);
+        }
+
+        /* ── Sign out button */
+        .profile-signout-btn {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 14px 16px;
+          background: rgba(255, 61, 113, 0.08);
+          border: 1px solid rgba(255, 61, 113, 0.2);
+          border-radius: 12px;
+          color: var(--color-accent);
+          font-size: var(--fs-body);
+          cursor: pointer;
+          width: 100%;
+          transition: background 0.2s;
+          margin-bottom: 8px;
+        }
+        .profile-signout-btn:active {
+          background: rgba(255, 61, 113, 0.15);
+        }
+
+        /* ── Bottom sheets */
+        .bottom-sheet-backdrop {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.55);
+          z-index: 200;
+          display: flex;
+          align-items: flex-end;
+          justify-content: center;
+        }
+        .bottom-sheet {
+          background: var(--color-surface);
+          border-radius: 20px 20px 0 0;
+          padding: 12px 20px 40px;
+          width: 100%;
+          max-width: 480px;
+          animation: slideUp 0.25s ease;
+        }
+        @keyframes slideUp {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
+        }
+        .bottom-sheet-handle {
+          width: 36px;
+          height: 4px;
+          border-radius: 2px;
+          background: var(--color-text-3);
+          margin: 0 auto 16px;
+        }
+        .bottom-sheet-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 16px;
+        }
+        .bottom-sheet-title {
+          font-size: var(--fs-h2);
+          font-weight: 700;
+          color: var(--color-text);
+          margin: 0;
+        }
+        .bottom-sheet-close {
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 4px;
+        }
+        .bottom-sheet-body {
+          font-size: var(--fs-body);
+          color: var(--color-text-2);
+          margin: 0 0 20px;
+          line-height: 1.5;
+        }
+
+        /* Skill options */
+        .bottom-sheet-options {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .skill-option {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 14px 16px;
+          background: var(--color-bg);
+          border: 1px solid transparent;
+          border-radius: 12px;
+          font-size: var(--fs-body);
+          color: var(--color-text);
+          cursor: pointer;
+          transition: border-color 0.2s;
+        }
+        .skill-option.selected {
+          border-color: var(--color-primary);
+          color: var(--color-primary);
+        }
+        .skill-check {
+          color: var(--color-primary);
+          font-weight: 700;
+        }
+
+        /* Sign out confirm actions */
+        .bottom-sheet-actions {
+          display: flex;
+          gap: 10px;
+          margin-top: 8px;
+        }
+        .sheet-btn-secondary {
+          flex: 1;
+          padding: 13px;
+          border-radius: 12px;
+          background: var(--color-bg);
+          border: 1px solid rgba(255,255,255,0.1);
+          color: var(--color-text-2);
+          font-size: var(--fs-body);
+          cursor: pointer;
+        }
+        .sheet-btn-danger {
+          flex: 1;
+          padding: 13px;
+          border-radius: 12px;
+          background: var(--color-accent);
+          border: none;
+          color: #fff;
+          font-size: var(--fs-body);
+          font-weight: 600;
+          cursor: pointer;
+        }
+        .sheet-btn-danger:active {
+          opacity: 0.85;
+        }
+      `}</style>
     </div>
-  )
+  );
 }
