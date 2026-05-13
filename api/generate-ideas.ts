@@ -1,5 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+function normaliseSkill(skill: string): 'beginner' | 'intermediate' | 'advanced' {
+  const s = (skill || '').toLowerCase().trim();
+  if (s === 'intermediate') return 'intermediate';
+  if (s === 'advanced' || s === 'professional') return 'advanced';
+  return 'beginner'; // beginner, hobbyist, or anything else
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -13,10 +20,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (!apiKey) return res.status(500).json({ error: 'API key not configured' });
   if (!materials || !Array.isArray(materials)) return res.status(400).json({ error: 'Materials array required' });
-  if (!skillLevel || !['beginner', 'intermediate', 'advanced'].includes(skillLevel)) return res.status(400).json({ error: 'Valid skill level required' });
+  if (!skillLevel) return res.status(400).json({ error: 'Skill level required' });
 
+  const normalisedSkill = normaliseSkill(skillLevel);
   const themeText = theme ? ` Theme or mood: ${theme}.` : '';
-  const userPrompt = `Generate 3 creative project ideas for an artist with these materials: ${materials.join(', ')}. Skill level: ${skillLevel}.${themeText}
+  const userPrompt = `Generate 3 creative project ideas for an artist with these materials: ${materials.join(', ')}. Skill level: ${normalisedSkill}.${themeText}
 
 Return ONLY a valid JSON array with no markdown, no explanation:
 [{
