@@ -13,7 +13,6 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 function AppContent() {
   const location = useLocation()
   const { user } = useAuth()
-  const skillSet = !!localStorage.getItem('artly_skill')
   const onboardingComplete = localStorage.getItem('artly_onboarding_complete') === 'true'
 
   // Landing: if signed in + onboarding done → home, if signed in + no skill → onboarding
