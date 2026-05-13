@@ -42,74 +42,7 @@ function filterColourMaterials(materials: Material[]): string[] {
 
 function savedKey(title: string) { return `artly_saved_${title}` }
 
-// ─── Build Unsplash search terms from idea title + materials ──────────────────
 
-function buildImageSearchTerms(ideaTitle: string): string {
-  // Get materials from localStorage
-  let materials: string[] = []
-  try {
-    const raw = localStorage.getItem('artly_detected_materials')
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      materials = parsed.map((m: any) => m.name?.toLowerCase() || '').filter(Boolean)
-    }
-  } catch {}
-
-  // Material → search keyword mapping
-  const materialKeywords: Record<string, string> = {
-    'air dry clay': 'clay,handmade,craft',
-    'clay': 'clay,pottery,handmade',
-    'acrylic paint': 'acrylic,painting,art',
-    'acrylic': 'acrylic,painting,art',
-    'watercolour': 'watercolour,painting,art',
-    'watercolor': 'watercolor,painting,art',
-    'oil paint': 'oil,painting,canvas',
-    'canvas': 'canvas,painting,art',
-    'pencil': 'pencil,sketch,drawing',
-    'charcoal': 'charcoal,sketch,drawing',
-    'ink': 'ink,drawing,art',
-    'pastel': 'pastel,art,drawing',
-    'marker': 'marker,illustration,art',
-    'collage': 'collage,mixed,media',
-    'paper': 'paper,craft,art',
-    'fabric': 'fabric,textile,craft',
-    'wood': 'wood,craft,handmade',
-    'leaves': 'botanical,leaves,nature',
-    'flowers': 'botanical,flowers,nature',
-    'pressed flowers': 'botanical,pressed,flowers',
-    'pressed leaves': 'botanical,pressed,leaves',
-    'resin': 'resin,art,handmade',
-    'plaster': 'sculpture,handmade,craft',
-  }
-
-  // Find best keyword match from materials
-  let materialTerms = ''
-  for (const mat of materials) {
-    for (const [key, val] of Object.entries(materialKeywords)) {
-      if (mat.includes(key) || key.includes(mat)) {
-        materialTerms = val
-        break
-      }
-    }
-    if (materialTerms) break
-  }
-
-  // Build terms from idea title keywords
-  const titleLower = ideaTitle.toLowerCase()
-  const titleTerms = titleLower
-    .replace(/[^a-z\s]/g, '')
-    .split(' ')
-    .filter(w => w.length > 3 && !['with', 'from', 'into', 'your', 'this', 'that', 'they', 'them', 'their'].includes(w))
-    .slice(0, 3)
-    .join(',')
-
-  // Combine: material terms take priority, title terms fill in
-  const combined = materialTerms
-    ? `${materialTerms},${titleTerms},DIY`
-    : `${titleTerms},handmade,craft,DIY`
-
-  return encodeURIComponent(combined)
-}
 
 // ─── GuestSaveSheet ───────────────────────────────────────────────────────────
 
@@ -168,9 +101,8 @@ function IdeaCard({ idea, index, total, isSaved, onToggleSave, onStartProject }:
     advanced:     { bg: 'rgba(255,61,113,0.15)',  text: '#FF3D71', border: '#FF3D71' },
   }[idea.difficulty] || { bg: 'rgba(29,158,117,0.15)', text: '#1D9E75', border: '#1D9E75' }
 
-  // Build smart Unsplash search URL from idea title + localStorage materials
-  const searchTerms = buildImageSearchTerms(idea.title)
-  const imageUrl = `https://source.unsplash.com/600x320/?${searchTerms}`
+  const seed = encodeURIComponent(idea.title.replace(/\s+/g, '-').toLowerCase())
+  const imageUrl = `https://picsum.photos/seed/${seed}/600/320`
 
   return (
     <div style={{ background: 'var(--color-surface)', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(108,60,225,0.2)', width: '100%' }}>
@@ -181,11 +113,7 @@ function IdeaCard({ idea, index, total, isSaved, onToggleSave, onStartProject }:
           src={imageUrl}
           alt={idea.title}
           style={{ width: '100%', height: 220, objectFit: 'cover', display: 'block' }}
-          onError={e => {
-            // Fallback to picsum if Unsplash fails
-            const seed = encodeURIComponent(idea.title.replace(/\s+/g, '-').toLowerCase())
-            ;(e.target as HTMLImageElement).src = `https://picsum.photos/seed/${seed}/600/320`
-          }}
+
         />
         <div style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(108,60,225,0.85)', backdropFilter: 'blur(6px)', borderRadius: 20, padding: '4px 12px', display: 'flex', alignItems: 'center', gap: 5 }}>
           <Sparkles size={12} color="#c4b0ff" />
