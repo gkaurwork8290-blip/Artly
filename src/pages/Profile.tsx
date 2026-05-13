@@ -18,7 +18,6 @@ import { useAuth } from '../contexts/AuthContext';
 
 const SKILL_LEVELS = ['Beginner', 'Hobbyist', 'Intermediate', 'Advanced', 'Professional'];
 
-const LANGUAGES = ['English'];
 
 function getStats() {
   const journalRaw = localStorage.getItem('artly_journal_entries');
@@ -46,7 +45,7 @@ export default function Profile() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [skill, setSkill] = useState('Beginner');
   const [notifications, setNotifications] = useState(false);
-  const [language] = useState('English');
+  const [language] = useState<string>('English');
   const [showSkillSheet, setShowSkillSheet] = useState(false);
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
   const stats = getStats();
