@@ -208,7 +208,6 @@ function MixHintLine({ hint }: { hint: string }) {
 export default function Create() {
   const navigate = useNavigate()
 
-  // Input / detection state (unchanged from original)
   const [selectedMethod, setSelectedMethod] = useState<InputMethod>(null)
   const [inputData, setInputData] = useState<InputData>({ method: null })
   const [currentScreen, setCurrentScreen] = useState<Screen>('selection')
@@ -219,7 +218,6 @@ export default function Create() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
 
-  // Ideas + carousel state
   const [ideas, setIdeas] = useState<Idea[]>([])
   const [activeIndex, setActiveIndex] = useState(0)
   const [savedIdeas, setSavedIdeas] = useState<Record<string, boolean>>({})
@@ -227,11 +225,21 @@ export default function Create() {
   const carouselRef = useRef<HTMLDivElement>(null)
   const touchStartX = useRef<number>(0)
 
-  // ── Auth helper ──
   const { user, signInWithGoogle } = useAuth()
   const isGuest = () => !user
 
-  // ── Camera helpers (unchanged) ──
+  // ── Load existing saved state from localStorage on mount ──
+  useEffect(() => {
+    const existing: Record<string, boolean> = {}
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key?.startsWith('artly_saved_') && localStorage.getItem(key) === 'true') {
+        existing[key] = true
+      }
+    }
+    setSavedIdeas(existing)
+  }, [])
+
   const handleCameraCapture = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
@@ -270,7 +278,6 @@ export default function Create() {
     reader.readAsDataURL(file)
   }
 
-  // ── Detection (unchanged logic) ──
   const detectMaterials = async () => {
     setCurrentScreen('detecting')
     setError(null)
@@ -300,13 +307,11 @@ export default function Create() {
     }
   }
 
-  // ── Ideas generation ──
   const generateIdeas = async () => {
     setCurrentScreen('ideas')
     setError(null)
     setIdeas([])
     setActiveIndex(0)
-    // Save materials for Project screen
     localStorage.setItem('artly_detected_materials', JSON.stringify(detectedMaterials))
     try {
       const skillLevel = localStorage.getItem('artly_skill') || 'beginner'
@@ -325,7 +330,6 @@ export default function Create() {
         paletteError: false,
       }))
       setIdeas(rawIdeas)
-      // Load palettes for all ideas in parallel
       rawIdeas.forEach((idea, idx) => loadPalette(idea, idx))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Ideas generation failed')
@@ -333,7 +337,6 @@ export default function Create() {
     }
   }
 
-  // ── Palette loading per idea ──
   const loadPalette = async (idea: Idea, idx: number) => {
     const colourMats = filterColourMaterials(detectedMaterials)
     if (colourMats.length === 0) {
@@ -358,15 +361,19 @@ export default function Create() {
     }
   }
 
-  // ── Heart / save ──
+  // ── FIXED: persist heart saves to localStorage ──
   const handleToggleSave = (idea: Idea) => {
     if (isGuest()) { setShowGuestSheet(true); return }
     const key = savedKey(idea.title)
-    setSavedIdeas(prev => ({ ...prev, [key]: !prev[key] }))
-    // Supabase persistence — wired up when saved_ideas table is created
+    const next = !savedIdeas[key]
+    setSavedIdeas(prev => ({ ...prev, [key]: next }))
+    if (next) {
+      localStorage.setItem(key, 'true')
+    } else {
+      localStorage.removeItem(key)
+    }
   }
 
-  // ── Carousel swipe ──
   const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX }
   const handleTouchEnd = (e: React.TouchEvent) => {
     const diff = touchStartX.current - e.changedTouches[0].clientX
@@ -376,11 +383,8 @@ export default function Create() {
     }
   }
 
-  // ── Misc ──
   const tryAgain = () => { setCurrentScreen('selection'); setSelectedMethod(null); setInputData({ method: null }); setDetectedMaterials([]); setIdeas([]) }
   const backToSelection = () => { setCurrentScreen('selection'); setSelectedMethod(null); setInputData({ method: null }) }
-
-  // ─── Styles ────────────────────────────────────────────────────────────────
 
   const s = {
     page: { minHeight: '100dvh', backgroundColor: 'var(--color-bg)', paddingBottom: 80, boxSizing: 'border-box' as const },
@@ -391,8 +395,6 @@ export default function Create() {
     gradBtn: { width: '100%', height: 52, background: 'linear-gradient(90deg,#6C3CE1 0%,#FF3D71 100%)', border: 'none', borderRadius: 16, color: 'white', fontSize: 16, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 },
     outlineBtn: { height: 48, backgroundColor: 'var(--color-surface)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14, color: 'var(--color-text)', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 },
   }
-
-  // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div style={s.page}>
@@ -405,7 +407,6 @@ export default function Create() {
             <h1 style={s.heading}>What would you like to <span style={{ color: 'var(--color-accent)' }}>use?</span></h1>
             <p style={s.subheading}>Add your materials in any way that's easiest for you. <span style={{ color: 'var(--color-primary)' }}>We'll identify them automatically.</span></p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
-              {/* Add Photos */}
               <div onClick={() => fileInputRef.current?.click()} style={s.card}>
                 <div style={{ width: 56, height: 56, borderRadius: '50%', flexShrink: 0, background: 'linear-gradient(135deg,#6C3CE1,#8B5CF6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Image size={24} color="white" strokeWidth={1.5} />
@@ -421,7 +422,6 @@ export default function Create() {
                 <ChevronRight size={20} color="var(--color-text-3)" />
                 <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
               </div>
-              {/* Take Photo */}
               <div onClick={handleCameraCapture} style={s.card}>
                 <div style={{ width: 56, height: 56, borderRadius: '50%', flexShrink: 0, background: 'linear-gradient(135deg,#C94070,#FF3D71)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Camera size={24} color="white" strokeWidth={1.5} />
@@ -436,7 +436,6 @@ export default function Create() {
                 </div>
                 <ChevronRight size={20} color="var(--color-text-3)" />
               </div>
-              {/* Describe */}
               <div onClick={() => setSelectedMethod('describe')} style={s.card}>
                 <div style={{ width: 56, height: 56, borderRadius: '50%', flexShrink: 0, background: 'linear-gradient(135deg,#B07820,#EF9F27)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <PenLine size={24} color="white" strokeWidth={1.5} />
@@ -470,7 +469,7 @@ export default function Create() {
             <div style={{ backgroundColor: 'var(--color-surface)', borderRadius: 16, padding: 16, marginBottom: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text)' }}>Uploaded Image</span>
-                <button onClick={() => fileInputRef.current?.click()} style={{ display: 'flex', alignItems: 'center', gap: 6, backgroundColor: 'var(--color-bg)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 12, color: 'var(--color-text-2)' }}>
+                <button onClick={() => fileInputRef.current?.click()} style={{ display: 'flex', alignItems: 'center', gap: 6, backgroundColor: 'var(--color-bg)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 12, color: 'var(--color-text-2)' }}>
                   <PenLine size={12} /> Change
                 </button>
               </div>
@@ -597,20 +596,17 @@ export default function Create() {
         {/* ── IDEAS CAROUSEL ── */}
         {currentScreen === 'ideas' && (
           <>
-            {/* Step dots */}
             <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 20 }}>
               {[0,1,2].map(i => (
                 <div key={i} style={{ height: 4, borderRadius: 2, background: i === 0 ? '#6C3CE1' : 'rgba(255,255,255,0.15)', width: i === 0 ? 24 : 16, transition: 'all 0.3s' }} />
               ))}
             </div>
 
-            {/* Heading */}
             <h1 style={{ fontSize: 'clamp(20px,5vw,26px)', fontWeight: 800, margin: '0 0 6px', textAlign: 'center', background: 'linear-gradient(90deg,#6C3CE1,#FF3D71)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
               Here's what you can create ✦
             </h1>
             <p style={{ fontSize: 13, color: 'var(--color-text-2)', textAlign: 'center', margin: '0 0 20px' }}>Based on your materials</p>
 
-            {/* Materials summary bar */}
             <div style={{ backgroundColor: 'var(--color-surface)', borderRadius: 14, padding: '12px 14px', marginBottom: 20, border: '1px solid rgba(108,60,225,0.15)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -637,7 +633,6 @@ export default function Create() {
               </div>
             </div>
 
-            {/* Loading state */}
             {ideas.length === 0 && (
               <div style={{ backgroundColor: 'var(--color-surface)', borderRadius: 20, padding: '60px 24px', textAlign: 'center' }}>
                 <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'linear-gradient(135deg,#6C3CE1,#FF3D71)', margin: '0 auto 16px', animation: 'spin 1s linear infinite', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -647,27 +642,21 @@ export default function Create() {
               </div>
             )}
 
-            {/* Carousel */}
             {ideas.length > 0 && (
               <>
-                {/* Desktop prev/next arrows + carousel */}
                 <div style={{ position: 'relative' }}>
-                  {/* Prev arrow — sits inside image top-left area */}
                   {activeIndex > 0 && (
                     <button
                       onClick={() => setActiveIndex(i => i - 1)}
                       style={{ position: 'absolute', left: 10, top: 90, zIndex: 10, width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      aria-label="Previous idea"
                     >
                       <ChevronLeft size={18} color="#fff" />
                     </button>
                   )}
-                  {/* Next arrow — sits inside image top-right area */}
                   {activeIndex < ideas.length - 1 && (
                     <button
                       onClick={() => setActiveIndex(i => i + 1)}
                       style={{ position: 'absolute', right: 10, top: 90, zIndex: 10, width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      aria-label="Next idea"
                     >
                       <ChevronRight size={18} color="#fff" />
                     </button>
@@ -698,10 +687,9 @@ export default function Create() {
                   </div>
                 </div>
 
-                {/* Dot indicators */}
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 8 }}>
                   {ideas.map((_, i) => (
-                    <button key={i} onClick={() => setActiveIndex(i)} style={{ width: i === activeIndex ? 20 : 8, height: 8, borderRadius: 4, background: i === activeIndex ? '#6C3CE1' : 'rgba(255,255,255,0.2)', border: 'none', cursor: 'pointer', padding: 0, transition: 'all 0.3s' }} aria-label={`Idea ${i + 1}`} />
+                    <button key={i} onClick={() => setActiveIndex(i)} style={{ width: i === activeIndex ? 20 : 8, height: 8, borderRadius: 4, background: i === activeIndex ? '#6C3CE1' : 'rgba(255,255,255,0.2)', border: 'none', cursor: 'pointer', padding: 0, transition: 'all 0.3s' }} />
                   ))}
                 </div>
                 {ideas.length - activeIndex - 1 > 0 && (
@@ -736,7 +724,6 @@ export default function Create() {
 
       </div>
 
-      {/* ── GUEST SAVE SHEET ── */}
       {showGuestSheet && <GuestSaveSheet onClose={() => setShowGuestSheet(false)} onSignIn={() => { setShowGuestSheet(false); signInWithGoogle() }} />}
     </div>
   )
