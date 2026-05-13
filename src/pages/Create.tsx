@@ -25,6 +25,8 @@ interface Idea {
   mixHint?: string
   paletteLoading?: boolean
   paletteError?: boolean
+  imageUrl?: string
+  imageLoading?: boolean
 }
 
 const COLOUR_KEYWORDS = [
@@ -102,7 +104,8 @@ function IdeaCard({ idea, index, total, isSaved, onToggleSave, onStartProject }:
   }[idea.difficulty] || { bg: 'rgba(29,158,117,0.15)', text: '#1D9E75', border: '#1D9E75' }
 
   const seed = encodeURIComponent(idea.title.replace(/\s+/g, '-').toLowerCase())
-  const imageUrl = `https://picsum.photos/seed/${seed}/600/320`
+  const fallbackUrl = `https://picsum.photos/seed/${seed}/600/320`
+  const imageUrl = idea.imageUrl || fallbackUrl
 
   return (
     <div style={{ background: 'var(--color-surface)', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(108,60,225,0.2)', width: '100%' }}>
@@ -112,8 +115,8 @@ function IdeaCard({ idea, index, total, isSaved, onToggleSave, onStartProject }:
         <img
           src={imageUrl}
           alt={idea.title}
-          style={{ width: '100%', height: 220, objectFit: 'cover', display: 'block' }}
-
+          style={{ width: '100%', height: 220, objectFit: 'cover', display: 'block', filter: idea.imageLoading ? 'blur(8px)' : 'none', transition: 'filter 0.4s' }}
+          onError={e => { (e.target as HTMLImageElement).src = fallbackUrl }}
         />
         <div style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(108,60,225,0.85)', backdropFilter: 'blur(6px)', borderRadius: 20, padding: '4px 12px', display: 'flex', alignItems: 'center', gap: 5 }}>
           <Sparkles size={12} color="#c4b0ff" />
@@ -323,9 +326,14 @@ export default function Create() {
         mixHint: '',
         paletteLoading: true,
         paletteError: false,
+        imageUrl: '',
+        imageLoading: true,
       }))
       setIdeas(rawIdeas)
-      rawIdeas.forEach((idea, idx) => loadPalette(idea, idx))
+      rawIdeas.forEach((idea, idx) => {
+        loadPalette(idea, idx)
+        loadImage(idea, idx)
+      })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Ideas generation failed')
       setCurrentScreen('error')
@@ -356,7 +364,35 @@ export default function Create() {
     }
   }
 
-  const handleToggleSave = (idea: Idea) => {
+  const loadImage = async (idea: Idea, idx: number) => {
+    // Check localStorage cache first
+    const cacheKey = `artly_img_${idea.title.replace(/\s+/g, '_').toLowerCase()}`
+    const cached = localStorage.getItem(cacheKey)
+    if (cached) {
+      setIdeas(prev => prev.map((it, i) => i === idx ? { ...it, imageUrl: cached, imageLoading: false } : it))
+      return
+    }
+    try {
+      let materials: string[] = []
+      try {
+        const raw = localStorage.getItem('artly_detected_materials')
+        if (raw) materials = JSON.parse(raw).map((m: any) => m.name || '')
+      } catch {}
+
+      const res = await fetch('/api/get-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ideaTitle: idea.title, materials }),
+      })
+      if (!res.ok) throw new Error('Image API failed')
+      const data = await res.json()
+      const url = data.imageUrl || ''
+      if (url) localStorage.setItem(cacheKey, url)
+      setIdeas(prev => prev.map((it, i) => i === idx ? { ...it, imageUrl: url, imageLoading: false } : it))
+    } catch {
+      setIdeas(prev => prev.map((it, i) => i === idx ? { ...it, imageUrl: '', imageLoading: false } : it))
+    }
+  }
     if (isGuest()) { setShowGuestSheet(true); return }
     const key = savedKey(idea.title)
     const next = !savedIdeas[key]
