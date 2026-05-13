@@ -9,18 +9,6 @@ import Onboarding from './pages/Onboarding'
 import BottomNav from './components/BottomNav'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 
-function hasUserData() {
-  const journal = localStorage.getItem('artly_journal_entries')
-  if (journal) {
-    try { if (JSON.parse(journal).length > 0) return true } catch {}
-  }
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i)
-    if (key?.startsWith('artly_saved_') && localStorage.getItem(key) === 'true') return true
-  }
-  return false
-}
-
 function AppContent() {
   const location = useLocation()
   const { user, loading } = useAuth()
