@@ -33,12 +33,12 @@ export default function Onboarding() {
   const handleContinue = () => {
     if (selected) localStorage.setItem('artly_skill', selected)
     localStorage.setItem('artly_onboarding_complete', 'true')
-    navigate('/home')
+    navigate('/create')
   }
 
   const handleSkip = () => {
     localStorage.setItem('artly_onboarding_complete', 'true')
-    navigate('/home')
+    navigate('/create')
   }
 
   return (
@@ -53,13 +53,10 @@ export default function Onboarding() {
     }}>
       <div style={{ width: '100%', maxWidth: '480px', display: 'flex', flexDirection: 'column' }}>
 
-        {/* Logo */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 32 }}>
-          <img
-            src="/logo.png"
-            alt="artly"
-            style={{ width: 48, height: 48, objectFit: 'contain', mixBlendMode: 'screen' }}
-          />
+        {/* Logo + wordmark */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 36 }}>
+          <img src="/logo.png" alt="artly" style={{ width: 40, height: 40, objectFit: 'contain', mixBlendMode: 'screen' }} />
+          <span style={{ fontSize: 20, fontWeight: 900, color: 'var(--color-text)', letterSpacing: '-0.5px' }}>artly</span>
         </div>
 
         {/* Headline */}
@@ -86,13 +83,9 @@ export default function Onboarding() {
                 style={{
                   backgroundColor: isSelected ? 'rgba(108, 60, 225, 0.08)' : 'var(--color-surface)',
                   border: isSelected ? '1.5px solid #6C3CE1' : '1.5px solid rgba(255,255,255,0.06)',
-                  borderRadius: '16px',
-                  padding: '16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '14px',
-                  cursor: 'pointer',
-                  transition: 'border 0.15s, background 0.15s',
+                  borderRadius: '16px', padding: '16px',
+                  display: 'flex', alignItems: 'center', gap: '14px',
+                  cursor: 'pointer', transition: 'border 0.15s, background 0.15s',
                   boxShadow: isSelected ? '0 0 0 1px rgba(108,60,225,0.3)' : 'none',
                 }}
               >
@@ -128,24 +121,17 @@ export default function Onboarding() {
           })}
         </div>
 
-        {/* Hint bar */}
+        {/* Hint */}
         <div style={{
-          backgroundColor: 'var(--color-surface)',
-          border: '1px solid rgba(255,255,255,0.05)',
-          borderRadius: '12px',
-          padding: '12px 14px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          marginBottom: '24px',
+          backgroundColor: 'var(--color-surface)', border: '1px solid rgba(255,255,255,0.05)',
+          borderRadius: '12px', padding: '12px 14px',
+          display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px',
         }}>
           <Lightbulb size={16} color="var(--color-text-3)" strokeWidth={1.5} />
-          <span style={{ fontSize: '12px', color: 'var(--color-text-3)' }}>
-            You can change this anytime in Settings.
-          </span>
+          <span style={{ fontSize: '12px', color: 'var(--color-text-3)' }}>You can change this anytime in Settings.</span>
         </div>
 
-        {/* Continue button */}
+        {/* Continue */}
         <button
           onClick={handleContinue}
           style={{
@@ -153,23 +139,16 @@ export default function Onboarding() {
             background: 'linear-gradient(90deg, #6C3CE1 0%, #FF6B35 100%)',
             color: 'white', border: 'none', borderRadius: '16px',
             fontWeight: '700', fontSize: 'clamp(14px, 3vw, 16px)',
-            cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-            marginBottom: '16px',
-            opacity: selected ? 1 : 0.5,
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+            marginBottom: '16px', opacity: selected ? 1 : 0.5,
           }}
         >
-          Continue
-          <ArrowRight size={18} color="white" strokeWidth={2.5} />
+          Continue <ArrowRight size={18} color="white" strokeWidth={2.5} />
         </button>
 
         <button
           onClick={handleSkip}
-          style={{
-            background: 'none', border: 'none',
-            color: '#6C3CE1', fontSize: '14px', fontWeight: '600',
-            cursor: 'pointer', textAlign: 'center', width: '100%',
-          }}
+          style={{ background: 'none', border: 'none', color: '#6C3CE1', fontSize: '14px', fontWeight: '600', cursor: 'pointer', textAlign: 'center', width: '100%' }}
         >
           Skip for now
         </button>
