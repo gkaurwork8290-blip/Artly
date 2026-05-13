@@ -8,17 +8,21 @@ import Profile from './pages/Profile'
 import Project from './pages/Project'
 import Onboarding from './pages/Onboarding'
 import BottomNav from './components/BottomNav'
-import { AuthProvider } from './contexts/AuthContext'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 
 function AppContent() {
   const location = useLocation()
+  const { user } = useAuth()
+  const skillSet = !!localStorage.getItem('artly_skill')
   const onboardingComplete = localStorage.getItem('artly_onboarding_complete') === 'true'
 
-  if (onboardingComplete && location.pathname === '/') {
-    return <Navigate to="/create" replace />
+  // Landing: if signed in + onboarding done → home, if signed in + no skill → onboarding
+  if (location.pathname === '/') {
+    if (user && onboardingComplete) return <Navigate to="/home" replace />
+    if (user && !onboardingComplete) return <Navigate to="/onboarding" replace />
+    if (!user && onboardingComplete) return <Navigate to="/home" replace />
   }
 
-  // BottomNav should not show on /onboarding or / routes
   const showBottomNav = location.pathname !== '/' && location.pathname !== '/onboarding'
 
   return (
@@ -26,10 +30,7 @@ function AppContent() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/home" element={<Home />} />
-        <Route 
-          path="/onboarding" 
-          element={<Onboarding />} 
-        />
+        <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/create" element={<Create />} />
         <Route path="/saved" element={<Saved />} />
         <Route path="/journal" element={<Journal />} />

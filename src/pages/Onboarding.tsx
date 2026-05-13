@@ -31,16 +31,14 @@ export default function Onboarding() {
   const [selected, setSelected] = useState<string | null>(null)
 
   const handleContinue = () => {
-    if (selected) {
-      localStorage.setItem('artly_skill', selected)
-    }
+    if (selected) localStorage.setItem('artly_skill', selected)
     localStorage.setItem('artly_onboarding_complete', 'true')
-    navigate('/create')
+    navigate('/home')
   }
 
   const handleSkip = () => {
     localStorage.setItem('artly_onboarding_complete', 'true')
-    navigate('/create')
+    navigate('/home')
   }
 
   return (
@@ -53,7 +51,16 @@ export default function Onboarding() {
       padding: 'clamp(24px, 5vw, 48px) 16px 32px',
       boxSizing: 'border-box',
     }}>
-      <div style={{ width: '100%', maxWidth: '480px', display: 'flex', flexDirection: 'column', gap: '0' }}>
+      <div style={{ width: '100%', maxWidth: '480px', display: 'flex', flexDirection: 'column' }}>
+
+        {/* Logo */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 32 }}>
+          <img
+            src="/logo.png"
+            alt="artly"
+            style={{ width: 48, height: 48, objectFit: 'contain', mixBlendMode: 'screen' }}
+          />
+        </div>
 
         {/* Headline */}
         <div style={{ textAlign: 'center', marginBottom: '28px' }}>
@@ -89,7 +96,6 @@ export default function Onboarding() {
                   boxShadow: isSelected ? '0 0 0 1px rgba(108,60,225,0.3)' : 'none',
                 }}
               >
-                {/* Icon container */}
                 <div style={{
                   width: '52px', height: '52px', borderRadius: '14px',
                   backgroundColor: isSelected ? 'rgba(108,60,225,0.15)' : 'var(--color-bg)',
@@ -97,8 +103,6 @@ export default function Onboarding() {
                 }}>
                   {skill.icon}
                 </div>
-
-                {/* Text */}
                 <div style={{ flex: 1 }}>
                   <p style={{ margin: '0 0 2px', fontSize: 'clamp(15px, 3.5vw, 17px)', fontWeight: '700', color: 'var(--color-text)' }}>
                     {skill.title}
@@ -110,8 +114,6 @@ export default function Onboarding() {
                     {skill.description}
                   </p>
                 </div>
-
-                {/* Selector circle */}
                 <div style={{
                   width: '26px', height: '26px', borderRadius: '50%', flexShrink: 0,
                   border: isSelected ? '2px solid #6C3CE1' : '2px solid rgba(255,255,255,0.2)',
@@ -161,7 +163,6 @@ export default function Onboarding() {
           <ArrowRight size={18} color="white" strokeWidth={2.5} />
         </button>
 
-        {/* Skip */}
         <button
           onClick={handleSkip}
           style={{
