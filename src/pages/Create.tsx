@@ -11,7 +11,7 @@ import { useAuth } from '../contexts/AuthContext'
 type InputMethod = 'upload' | 'camera' | 'describe' | null
 type InputData = { image?: string; description?: string; method: InputMethod }
 type Material = { name: string; category: string; confidence: string }
-type Screen = 'selection' | 'detecting' | 'confirmation' | 'generating' | 'error' | 'ideas'
+type Screen = 'selection' | 'detecting' | 'confirmation' | 'error' | 'ideas'
 
 interface PaletteColour { hex: string; name: string }
 interface Idea {
@@ -19,10 +19,27 @@ interface Idea {
   description: string
   difficulty: 'beginner' | 'intermediate' | 'advanced'
   estimatedTime: string
-  steps: any[]
+  steps: string[]
   materialsUsed?: string
   palette?: PaletteColour[]
   mixHint?: string
+  paletteLoading?: boolean
+  paletteError?: boolean
+}
+
+const COLOUR_KEYWORDS = [
+  'paint', 'watercolor', 'watercolour', 'watercolors', 'watercolours',
+  'acrylic', 'gouache', 'oil paint', 'tempera', 'poster color', 'poster colour',
+  'pastel', 'chalk pastel', 'oil pastel',
+  'crayon', 'ink', 'dye', 'charcoal', 'colored pencil', 'coloured pencil',
+  'marker', 'markers', 'sketch pen', 'pigment',
+  'pressed flowers', 'pressed leaves', 'flowers', 'leaves',
+]
+
+function filterColourMaterials(materials: Material[]): string[] {
+  return materials
+    .filter(m => COLOUR_KEYWORDS.some(k => m.name.toLowerCase().includes(k)))
+    .map(m => m.name)
 }
 
 function savedKey(title: string) { return `artly_saved_${title}` }
@@ -84,8 +101,6 @@ function IdeaCard({ idea, isSaved, onToggleSave, onStartProject }: {
     advanced:     { bg: 'rgba(255,61,113,0.15)',  text: '#FF3D71', border: '#FF3D71' },
   }[idea.difficulty] || { bg: 'rgba(29,158,117,0.15)', text: '#1D9E75', border: '#1D9E75' }
 
-  const hasPalette = idea.palette && idea.palette.length > 0
-
   return (
     <div style={{ background: 'var(--color-surface)', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(108,60,225,0.2)', width: '100%' }}>
       <div style={{ height: 4, background: 'linear-gradient(90deg, #6C3CE1, #FF3D71)' }} />
@@ -119,32 +134,58 @@ function IdeaCard({ idea, isSaved, onToggleSave, onStartProject }: {
           </span>
         </div>
 
-        {/* Colour palette — only shown when colours exist */}
-        {hasPalette && (
-          <div style={{ marginBottom: 20 }}>
-            <p style={{ fontSize: 11, color: 'var(--color-text-3)', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>Colour Palette</p>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-              {idea.palette.map((c, i) => (
-                <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 10, background: c.hex, border: '1px solid rgba(255,255,255,0.12)' }} />
-                  <span style={{ fontSize: 9, color: 'var(--color-text-3)', textAlign: 'center', maxWidth: 44, lineHeight: 1.2 }}>{c.name}</span>
-                </div>
-              ))}
+        {/* Colour Palette */}
+        <div style={{ marginBottom: 20 }}>
+          <p style={{ fontSize: 11, color: 'var(--color-text-3)', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>Colour Palette</p>
+          {idea.paletteLoading ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid #6C3CE1', borderTopColor: 'transparent', animation: 'spin 0.7s linear infinite' }} />
+              <span style={{ fontSize: 12, color: 'var(--color-text-3)' }}>Loading palette...</span>
             </div>
-            {idea.mixHint && (
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, background: 'rgba(108,60,225,0.08)', borderRadius: 10, padding: '8px 10px' }}>
-                <Paintbrush2 size={12} color="#9b7ff0" style={{ flexShrink: 0, marginTop: 1 }} />
-                <span style={{ fontSize: 12, color: 'var(--color-text-2)', lineHeight: 1.5 }}>{idea.mixHint}</span>
+          ) : idea.palette && idea.palette.length > 0 ? (
+            <>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                {idea.palette.map((c, i) => (
+                  <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 10, background: c.hex, border: '1px solid rgba(255,255,255,0.12)' }} title={c.name} />
+                    <span style={{ fontSize: 9, color: 'var(--color-text-3)', textAlign: 'center', maxWidth: 44, lineHeight: 1.2 }}>{c.name}</span>
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
-        )}
+              {idea.mixHint && <MixHintLine hint={idea.mixHint} />}
+            </>
+          ) : (
+            <span style={{ fontSize: 12, color: 'var(--color-text-3)' }}>No colour materials detected</span>
+          )}
+        </div>
 
         <button onClick={onStartProject} style={{ width: '100%', padding: '15px', borderRadius: 14, background: 'linear-gradient(90deg, #6C3CE1 0%, #FF3D71 100%)', border: 'none', cursor: 'pointer', fontSize: 16, fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
           Start this project <ArrowRight size={18} />
         </button>
       </div>
     </div>
+  )
+}
+
+// ─── MixHintLine ──────────────────────────────────────────────────────────────
+
+function MixHintLine({ hint }: { hint: string }) {
+  const colourMap: Record<string, string> = {
+    Green: '#1D9E75', Yellow: '#EF9F27', Brown: '#a0522d', Blue: '#3D9BE9',
+    Red: '#FF3D71', Purple: '#6C3CE1', Pink: '#FF3D71', Orange: '#EF9F27',
+    White: '#ffffff', Black: '#888', Grey: '#A0A0C0', Gray: '#A0A0C0',
+    Teal: '#1D9E75', Violet: '#6C3CE1', Indigo: '#4B5FD6',
+  }
+  const parts = hint.split(/(\b[A-Z][a-z]+\b)/)
+  return (
+    <p style={{ fontSize: 12, color: 'var(--color-text-2)', margin: 0, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+      <Paintbrush2 size={12} color="var(--color-text-3)" />
+      {parts.map((p, i) =>
+        colourMap[p]
+          ? <span key={i} style={{ color: colourMap[p], fontWeight: 700 }}>{p}</span>
+          : <span key={i}>{p}</span>
+      )}
+    </p>
   )
 }
 
@@ -157,9 +198,6 @@ export default function Create() {
   const [inputData, setInputData] = useState<InputData>({ method: null })
   const [currentScreen, setCurrentScreen] = useState<Screen>('selection')
   const [detectedMaterials, setDetectedMaterials] = useState<Material[]>([])
-  const [colourMaterials, setColourMaterials] = useState<any[]>([])
-  const [craftMaterials, setCraftMaterials] = useState<any[]>([])
-  const [capabilities, setCapabilities] = useState<string[]>([])
   const [manualMaterial, setManualMaterial] = useState('')
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -238,11 +276,7 @@ export default function Create() {
       if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'API failed') }
       const data = await res.json()
       if (!Array.isArray(data.materials) || data.materials.length === 0) throw new Error('No materials detected')
-
       setDetectedMaterials(data.materials)
-      setColourMaterials(data.colourMaterials || [])
-      setCraftMaterials(data.craftMaterials || [])
-      setCapabilities(data.capabilities || [])
       setCurrentScreen('confirmation')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Detection failed')
@@ -259,7 +293,7 @@ export default function Create() {
   }
 
   const generateIdeas = async () => {
-    setCurrentScreen('generating')
+    setCurrentScreen('ideas')
     setError(null)
     setIdeas([])
     setActiveIndex(0)
@@ -269,26 +303,48 @@ export default function Create() {
       const res = await fetch('/api/generate-ideas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          materials: detectedMaterials.map(m => m.name),
-          skillLevel,
-          colourMaterials,
-          craftMaterials,
-          capabilities,
-        }),
+        body: JSON.stringify({ materials: detectedMaterials.map(m => m.name), skillLevel }),
       })
       if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'API failed') }
       const data = await res.json()
       const rawIdeas: Idea[] = (data.ideas || []).map((idea: any) => ({
         ...idea,
-        palette: idea.palette || [],
-        mixHint: idea.mixHint || '',
+        palette: [],
+        mixHint: '',
+        paletteLoading: true,
+        paletteError: false,
       }))
       setIdeas(rawIdeas)
-      setCurrentScreen('ideas')
+      rawIdeas.forEach((idea, idx) => {
+        loadPalette(idea, idx)
+      })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Ideas generation failed')
       setCurrentScreen('error')
+    }
+  }
+
+  const loadPalette = async (idea: Idea, idx: number) => {
+    const colourMats = filterColourMaterials(detectedMaterials)
+    if (colourMats.length === 0) {
+      setIdeas(prev => prev.map((it, i) => i === idx ? { ...it, paletteLoading: false } : it))
+      return
+    }
+    try {
+      const res = await fetch('/api/generate-palette', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ materials: colourMats, ideaTitle: idea.title, ideaSteps: idea.steps || [] }),
+      })
+      if (!res.ok) throw new Error('Palette API failed')
+      const data = await res.json()
+      const palette: PaletteColour[] = (data.colors || []).map((c: any) => ({ hex: c.hex, name: c.name }))
+      const mixHint = data.mixHint || data.mixing_hint || data.hint || ''
+      setIdeas(prev => prev.map((it, i) =>
+        i === idx ? { ...it, palette, mixHint, paletteLoading: false, paletteError: false } : it
+      ))
+    } catch {
+      setIdeas(prev => prev.map((it, i) => i === idx ? { ...it, paletteLoading: false, paletteError: true } : it))
     }
   }
 
@@ -310,7 +366,7 @@ export default function Create() {
     }
   }
 
-  const tryAgain = () => { setCurrentScreen('selection'); setSelectedMethod(null); setInputData({ method: null }); setDetectedMaterials([]); setColourMaterials([]); setCraftMaterials([]); setCapabilities([]); setIdeas([]) }
+  const tryAgain = () => { setCurrentScreen('selection'); setSelectedMethod(null); setInputData({ method: null }); setDetectedMaterials([]); setIdeas([]) }
   const backToSelection = () => { setCurrentScreen('selection'); setSelectedMethod(null); setInputData({ method: null }) }
 
   const s = {
@@ -459,13 +515,13 @@ export default function Create() {
             <div style={{ backgroundColor: 'var(--color-surface)', borderRadius: 16, padding: 16, marginBottom: 12 }}>
               <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 600, color: 'var(--color-text)' }}>Describe your materials</p>
               <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--color-text-2)' }}>Type or list the art supplies you have</p>
-              <textarea value={inputData.description || ''} onChange={e => setInputData({ ...inputData, description: e.target.value, method: 'describe' })} placeholder="Example: Cobalt blue watercolour, burnt sienna, air dry clay, brushes..." style={{ width: '100%', minHeight: 120, padding: 12, backgroundColor: 'var(--color-bg)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, color: 'var(--color-text)', fontSize: 14, lineHeight: 1.5, resize: 'none', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+              <textarea value={inputData.description || ''} onChange={e => setInputData({ ...inputData, description: e.target.value, method: 'describe' })} placeholder="Example: Watercolors, paintbrushes, canvas, sketchbook, colored pencils..." style={{ width: '100%', minHeight: 120, padding: 12, backgroundColor: 'var(--color-bg)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, color: 'var(--color-text)', fontSize: 14, lineHeight: 1.5, resize: 'none', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
               <div style={{ textAlign: 'right', fontSize: 11, color: 'var(--color-text-3)', marginTop: 4 }}>{(inputData.description || '').length} / 500</div>
             </div>
             <div style={{ marginBottom: 16 }}>
               <p style={{ fontSize: 12, color: 'var(--color-text-3)', marginBottom: 8 }}>Try these examples</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {['Cobalt blue, burnt sienna, brushes', 'Air dry clay, acrylic paint', 'Sketchbook, pencils, markers'].map(chip => (
+                {['Watercolors, brushes, paper', 'Acrylic paints, canvas, palette', 'Sketchbook, pencils, markers'].map(chip => (
                   <button key={chip} onClick={() => setInputData({ ...inputData, description: chip, method: 'describe' })} style={{ padding: '6px 12px', backgroundColor: 'var(--color-surface)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 99, color: 'var(--color-text-2)', fontSize: 12, cursor: 'pointer' }}>{chip}</button>
                 ))}
               </div>
@@ -487,35 +543,17 @@ export default function Create() {
           </div>
         )}
 
-        {currentScreen === 'generating' && (
-          <div style={{ backgroundColor: 'var(--color-surface)', borderRadius: 20, padding: '48px 24px', textAlign: 'center' }}>
-            <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'linear-gradient(135deg,#6C3CE1,#FF3D71)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', animation: 'spin 1s linear infinite' }}>
-              <Sparkles size={24} color="white" />
-            </div>
-            <h3 style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-text)', marginBottom: 8 }}>Sparking your creativity...</h3>
-            <p style={{ fontSize: 14, color: 'var(--color-text-2)', margin: 0 }}>Generating ideas and colour palettes</p>
-          </div>
-        )}
-
         {currentScreen === 'confirmation' && (
           <div style={{ backgroundColor: 'var(--color-surface)', borderRadius: 20, padding: 20 }}>
-            <h3 style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-text)', marginBottom: 4 }}>We found these materials</h3>
-            {capabilities.length > 0 && (
-              <p style={{ fontSize: 12, color: '#9b7ff0', marginBottom: 14 }}>
-                Capabilities detected: {capabilities.join(', ')}
-              </p>
-            )}
+            <h3 style={{ fontSize: 20, fontWeight: 700, color: 'var(--color-text)', marginBottom: 16 }}>We found these materials</h3>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
               {detectedMaterials.map((m, i) => (
-                <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: m.category === 'colour' ? 'rgba(255,61,113,0.1)' : 'rgba(108,60,225,0.12)', border: `1px solid ${m.category === 'colour' ? 'rgba(255,61,113,0.3)' : 'rgba(108,60,225,0.25)'}`, borderRadius: 99 }}>
+                <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: 'rgba(108,60,225,0.12)', border: '1px solid rgba(108,60,225,0.25)', borderRadius: 99 }}>
                   <span style={{ fontSize: 13, color: 'var(--color-text)' }}>{m.name}</span>
                   <button onClick={() => removeMaterial(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}><X size={14} color="var(--color-text-3)" /></button>
                 </div>
               ))}
             </div>
-            <p style={{ fontSize: 11, color: 'var(--color-text-3)', marginBottom: 8 }}>
-              Pink = colour material · Purple = craft material
-            </p>
             <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
               <input type="text" value={manualMaterial} onChange={e => setManualMaterial(e.target.value)} placeholder="Add material..." onKeyPress={e => e.key === 'Enter' && addManualMaterial()} style={{ flex: 1, padding: '10px 14px', backgroundColor: 'var(--color-bg)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, color: 'var(--color-text)', fontSize: 14, outline: 'none', fontFamily: 'inherit' }} />
               <button onClick={addManualMaterial} disabled={!manualMaterial.trim()} style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg,#6C3CE1,#FF3D71)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: manualMaterial.trim() ? 1 : 0.5 }}>
@@ -563,6 +601,15 @@ export default function Create() {
                 )}
               </div>
             </div>
+
+            {ideas.length === 0 && (
+              <div style={{ backgroundColor: 'var(--color-surface)', borderRadius: 20, padding: '60px 24px', textAlign: 'center' }}>
+                <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'linear-gradient(135deg,#6C3CE1,#FF3D71)', margin: '0 auto 16px', animation: 'spin 1s linear infinite', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Sparkles size={20} color="white" />
+                </div>
+                <p style={{ color: 'var(--color-text-2)', fontSize: 14, margin: 0 }}>Sparking your creativity...</p>
+              </div>
+            )}
 
             {ideas.length > 0 && (
               <>

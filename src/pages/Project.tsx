@@ -52,8 +52,6 @@ export default function Project() {
     advanced:     '#FF3D71',
   }[idea.difficulty] || '#1D9E75'
 
-  const hasPalette = idea.palette && idea.palette.length > 0
-
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--color-bg)', paddingBottom: 100 }}>
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '0 16px' }}>
@@ -118,20 +116,6 @@ export default function Project() {
             <p style={{ fontSize: 13, color: 'var(--color-text-2)', margin: '0 0 14px', lineHeight: 1.55 }}>{current.description}</p>
           )}
 
-          {/* Colour hint for this step */}
-          {hasPalette && current.description && current.description.match(/[A-Z][a-z]+ (Blue|Red|Green|Yellow|Brown|White|Black|Ochre|Sienna|Umber|Crimson|Violet|Orange|Pink|Teal|Indigo)/g) && (
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-              {idea.palette.filter(c =>
-                current.description.toLowerCase().includes(c.name.toLowerCase().split(' ').pop())
-              ).map((c, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.05)', borderRadius: 20, padding: '3px 10px 3px 6px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                  <div style={{ width: 14, height: 14, borderRadius: '50%', background: c.hex, flexShrink: 0 }} />
-                  <span style={{ fontSize: 11, color: 'var(--color-text-2)' }}>{c.name}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
           {/* Tip */}
           {current.tip && (
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, background: 'rgba(239,159,39,0.1)', border: '1px solid rgba(239,159,39,0.25)', borderRadius: 12, padding: '10px 12px', marginBottom: 16 }}>
@@ -142,7 +126,7 @@ export default function Project() {
             </div>
           )}
 
-          {/* Step nav */}
+          {/* Step dots + nav */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
             <button
               onClick={() => setActiveStep(i => Math.max(0, i - 1))}
@@ -241,7 +225,7 @@ export default function Project() {
         )}
 
         {/* ── Colour palette ── */}
-        {hasPalette && (
+        {idea.palette && idea.palette.length > 0 && (
           <div style={{ background: 'var(--color-surface)', borderRadius: 20, padding: 18, marginBottom: 16, border: '1px solid rgba(255,255,255,0.06)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
               <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(108,60,225,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -258,10 +242,9 @@ export default function Project() {
               ))}
             </div>
             {idea.mixHint && (
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, background: 'rgba(108,60,225,0.08)', borderRadius: 10, padding: '8px 10px' }}>
-                <Paintbrush2 size={12} color="#9b7ff0" style={{ flexShrink: 0, marginTop: 1 }} />
-                <p style={{ fontSize: 12, color: 'var(--color-text-2)', margin: 0, lineHeight: 1.6 }}>{idea.mixHint}</p>
-              </div>
+              <p style={{ fontSize: 12, color: 'var(--color-text-2)', margin: 0, lineHeight: 1.6 }}>
+                {idea.mixHint}
+              </p>
             )}
           </div>
         )}
