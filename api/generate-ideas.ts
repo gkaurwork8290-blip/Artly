@@ -7,6 +7,45 @@ function normaliseSkill(skill: string): 'beginner' | 'intermediate' | 'advanced'
   return 'beginner';
 }
 
+function extractJSON(text: string): any[] {
+  // 1. Strip markdown fences
+  let cleaned = text
+    .replace(/```json\n?/g, '')
+    .replace(/```\n?/g, '')
+    .trim();
+
+  // 2. If wrapped in an object like {"ideas": [...]}, extract the array
+  const wrappedMatch = cleaned.match(/"ideas"\s*:\s*(\[[\s\S]*\])/);
+  if (wrappedMatch) cleaned = wrappedMatch[1].trim();
+
+  // 3. Try direct parse first
+  try {
+    const parsed = JSON.parse(cleaned);
+    if (Array.isArray(parsed)) return parsed;
+    if (parsed.ideas && Array.isArray(parsed.ideas)) return parsed.ideas;
+  } catch {}
+
+  // 4. Find the outermost [ ... ] array in the text
+  const start = cleaned.indexOf('[');
+  const end = cleaned.lastIndexOf(']');
+  if (start !== -1 && end !== -1 && end > start) {
+    const slice = cleaned.slice(start, end + 1);
+    try {
+      const parsed = JSON.parse(slice);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {}
+
+    // 5. Last resort: remove trailing commas and retry
+    const fixedSlice = slice.replace(/,\s*([}\]])/g, '$1');
+    try {
+      const parsed = JSON.parse(fixedSlice);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {}
+  }
+
+  throw new Error('Could not extract valid JSON array from response');
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -78,7 +117,7 @@ Generate 4-6 steps per idea. Steps must be practical, specific to the materials 
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5',
-        max_tokens: 2048,
+        max_tokens: 3000,
         system: 'You are a creative art coach. Always respond with ONLY a valid JSON array, no markdown, no backticks, no explanation. Strictly match idea complexity to the artist\'s skill level.',
         messages: [{ role: 'user', content: userPrompt }]
       })
@@ -88,14 +127,15 @@ Generate 4-6 steps per idea. Steps must be practical, specific to the materials 
     if (!response.ok) return res.status(500).json({ error: `Anthropic error: ${responseText}` });
 
     const data = JSON.parse(responseText);
-    const rawText = data.content?.[0]?.text || '[]';
-    const cleaned = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const rawText = data.content?.[0]?.text || '';
+
+    if (!rawText) return res.status(500).json({ error: 'Empty response from Claude' });
 
     try {
-      const ideas = JSON.parse(cleaned);
+      const ideas = extractJSON(rawText);
       return res.status(200).json({ ideas });
     } catch {
-      return res.status(500).json({ error: 'Failed to parse ideas response', rawResponse: cleaned });
+      return res.status(500).json({ error: 'Failed to parse ideas response', rawResponse: rawText.slice(0, 500) });
     }
   } catch (error) {
     console.error('Ideas generation error:', error);
