@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   ChevronLeft, Heart, Clock, Layers, BarChart2,
   ChevronDown, ChevronUp, Lightbulb, ArrowRight,
-  ArrowLeft, Paintbrush2, Edit2, Lock, CheckCircle2
+  ArrowLeft, Paintbrush2, Edit2, CheckCircle2
 } from 'lucide-react'
 
 export default function Project() {
@@ -37,7 +37,6 @@ export default function Project() {
     )
   }
 
-  // Normalise steps — handle both string[] and {title,description,tip}[]
   const steps = (idea.steps || []).map(s =>
     typeof s === 'string'
       ? { title: s, description: '', tip: '' }
@@ -46,7 +45,6 @@ export default function Project() {
 
   const totalSteps = steps.length
   const current = steps[activeStep] || {}
-  const picsumSeed = encodeURIComponent((idea.title || 'art').replace(/\s+/g, '-').toLowerCase())
 
   const diffColor = {
     beginner:     '#1D9E75',
@@ -54,13 +52,14 @@ export default function Project() {
     advanced:     '#FF3D71',
   }[idea.difficulty] || '#1D9E75'
 
+  const hasPalette = idea.palette && idea.palette.length > 0
+
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--color-bg)', paddingBottom: 100 }}>
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '0 16px' }}>
 
         {/* ── Header ── */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0 8px' }}>
-          {/* Progress dots */}
           <button onClick={() => navigate(-1)} style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--color-surface)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <ChevronLeft size={20} color="var(--color-text)" />
           </button>
@@ -113,24 +112,25 @@ export default function Project() {
             Step {activeStep + 1} of {totalSteps}
           </p>
 
-          <div style={{ display: 'flex', gap: 14, marginBottom: 14 }}>
-            <div style={{ flex: 1 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--color-text)', margin: '0 0 8px', lineHeight: 1.2 }}>{current.title}</h2>
-              {current.description && (
-                <p style={{ fontSize: 13, color: 'var(--color-text-2)', margin: 0, lineHeight: 1.55 }}>{current.description}</p>
-              )}
+          <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--color-text)', margin: '0 0 10px', lineHeight: 1.2 }}>{current.title}</h2>
+
+          {current.description && (
+            <p style={{ fontSize: 13, color: 'var(--color-text-2)', margin: '0 0 14px', lineHeight: 1.55 }}>{current.description}</p>
+          )}
+
+          {/* Colour hint for this step */}
+          {hasPalette && current.description && current.description.match(/[A-Z][a-z]+ (Blue|Red|Green|Yellow|Brown|White|Black|Ochre|Sienna|Umber|Crimson|Violet|Orange|Pink|Teal|Indigo)/g) && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+              {idea.palette.filter(c =>
+                current.description.toLowerCase().includes(c.name.toLowerCase().split(' ').pop())
+              ).map((c, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.05)', borderRadius: 20, padding: '3px 10px 3px 6px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <div style={{ width: 14, height: 14, borderRadius: '50%', background: c.hex, flexShrink: 0 }} />
+                  <span style={{ fontSize: 11, color: 'var(--color-text-2)' }}>{c.name}</span>
+                </div>
+              ))}
             </div>
-            <div style={{ position: 'relative', flexShrink: 0 }}>
-              <img
-                src={`https://picsum.photos/seed/${picsumSeed}-${activeStep}/120/100`}
-                alt={current.title}
-                style={{ width: 110, height: 90, objectFit: 'cover', borderRadius: 12, display: 'block' }}
-              />
-              <div style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.6)', borderRadius: 6, padding: '2px 7px', fontSize: 11, fontWeight: 700, color: '#fff' }}>
-                {activeStep + 1} / {totalSteps}
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* Tip */}
           {current.tip && (
@@ -142,7 +142,7 @@ export default function Project() {
             </div>
           )}
 
-          {/* Step dots + nav */}
+          {/* Step nav */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
             <button
               onClick={() => setActiveStep(i => Math.max(0, i - 1))}
@@ -158,25 +158,16 @@ export default function Project() {
               ))}
             </div>
 
-            {activeStep < totalSteps - 1 ? (
-              <button
-                onClick={() => setActiveStep(i => i + 1)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 18px', background: 'linear-gradient(90deg,#6C3CE1,#FF3D71)', border: 'none', borderRadius: 12, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
-              >
-                Next step <ArrowRight size={15} />
-              </button>
-            ) : (
-              <button
-                onClick={() => navigate('/journal')}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 18px', background: 'linear-gradient(90deg,#1D9E75,#6C3CE1)', border: 'none', borderRadius: 12, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
-              >
-                Journal it <ArrowRight size={15} />
-              </button>
-            )}
+            <button
+              onClick={() => activeStep < totalSteps - 1 ? setActiveStep(i => i + 1) : navigate('/journal')}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 18px', background: activeStep < totalSteps - 1 ? 'linear-gradient(90deg,#6C3CE1,#FF3D71)' : 'linear-gradient(90deg,#1D9E75,#6C3CE1)', border: 'none', borderRadius: 12, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+            >
+              {activeStep < totalSteps - 1 ? <>Next step <ArrowRight size={15} /></> : <>Done <ArrowRight size={15} /></>}
+            </button>
           </div>
         </div>
 
-        {/* ── Journal it CTA ── */}
+        {/* ── Journal my result CTA ── */}
         <button
           onClick={() => navigate('/journal')}
           style={{ width: '100%', padding: '15px', borderRadius: 14, background: 'linear-gradient(90deg, #1D9E75 0%, #6C3CE1 100%)', border: 'none', cursor: 'pointer', fontSize: 15, fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 16 }}
@@ -198,29 +189,23 @@ export default function Project() {
                       onClick={() => setActiveStep(i)}
                       style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px', background: isActive ? 'rgba(108,60,225,0.1)' : 'transparent', border: isActive ? '1px solid rgba(108,60,225,0.25)' : '1px solid transparent', borderRadius: 14, cursor: 'pointer', textAlign: 'left' }}
                     >
-                      {/* Step number circle */}
                       <div style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, background: isActive || isDone ? '#6C3CE1' : 'rgba(108,60,225,0.15)', border: isActive || isDone ? 'none' : '1.5px solid rgba(108,60,225,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {isDone
                           ? <CheckCircle2 size={16} color="#fff" />
                           : <span style={{ fontSize: 12, fontWeight: 700, color: isActive ? '#fff' : '#6C3CE1' }}>{i + 1}</span>
                         }
                       </div>
-                      {/* Text */}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)', margin: '0 0 2px' }}>{step.title}</p>
                         {step.description && <p style={{ fontSize: 12, color: 'var(--color-text-2)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{step.description}</p>}
                       </div>
-                      {/* Thumb */}
-                      <img src={`https://picsum.photos/seed/${picsumSeed}-${i}/56/44`} alt="" style={{ width: 52, height: 40, borderRadius: 8, objectFit: 'cover', flexShrink: 0, opacity: isActive || isDone ? 1 : 0.4 }} />
-                      {/* Status */}
                       {isActive
                         ? <span style={{ fontSize: 10, fontWeight: 700, color: '#6C3CE1', background: 'rgba(108,60,225,0.15)', borderRadius: 20, padding: '3px 8px', flexShrink: 0 }}>Current</span>
                         : isDone
                           ? <CheckCircle2 size={16} color="#1D9E75" style={{ flexShrink: 0 }} />
-                          : <Lock size={14} color="var(--color-text-3)" style={{ flexShrink: 0 }} />
+                          : <span style={{ fontSize: 10, color: 'var(--color-text-3)', flexShrink: 0 }}>—</span>
                       }
                     </button>
-                    {/* Connector line */}
                     {i < steps.length - 1 && (
                       <div style={{ width: 2, height: 8, background: 'rgba(108,60,225,0.2)', margin: '0 0 0 22px' }} />
                     )}
@@ -256,25 +241,27 @@ export default function Project() {
         )}
 
         {/* ── Colour palette ── */}
-        {idea.palette && idea.palette.length > 0 && (
+        {hasPalette && (
           <div style={{ background: 'var(--color-surface)', borderRadius: 20, padding: 18, marginBottom: 16, border: '1px solid rgba(255,255,255,0.06)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(108,60,225,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Paintbrush2 size={14} color="#9b7ff0" />
-                </div>
-                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text)' }}>Colour palette & mixing guide</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(108,60,225,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Paintbrush2 size={14} color="#9b7ff0" />
               </div>
+              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text)' }}>Colour Palette</span>
             </div>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
               {idea.palette.map((c, i) => (
-                <div key={i} style={{ width: 48, height: 48, borderRadius: 10, background: c.hex, border: '1px solid rgba(255,255,255,0.1)' }} title={c.name} />
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 12, background: c.hex, border: '1px solid rgba(255,255,255,0.1)' }} />
+                  <span style={{ fontSize: 9, color: 'var(--color-text-3)', textAlign: 'center', maxWidth: 52, lineHeight: 1.2 }}>{c.name}</span>
+                </div>
               ))}
             </div>
             {idea.mixHint && (
-              <p style={{ fontSize: 12, color: 'var(--color-text-2)', margin: 0, lineHeight: 1.6 }}>
-                {idea.mixHint}
-              </p>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, background: 'rgba(108,60,225,0.08)', borderRadius: 10, padding: '8px 10px' }}>
+                <Paintbrush2 size={12} color="#9b7ff0" style={{ flexShrink: 0, marginTop: 1 }} />
+                <p style={{ fontSize: 12, color: 'var(--color-text-2)', margin: 0, lineHeight: 1.6 }}>{idea.mixHint}</p>
+              </div>
             )}
           </div>
         )}
