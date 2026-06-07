@@ -9,7 +9,7 @@ import Onboarding from './pages/Onboarding'
 import BottomNav from './components/BottomNav'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { useEffect } from 'react'
-import { Analytics, identifyUser, resetUser } from './lib/analytics'
+import { Analytics, identifyUser } from './lib/analytics'
 
 function AppContent() {
   const location = useLocation()
