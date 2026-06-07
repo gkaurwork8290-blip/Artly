@@ -8,12 +8,33 @@ import Project from './pages/Project'
 import Onboarding from './pages/Onboarding'
 import BottomNav from './components/BottomNav'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { useEffect } from 'react'
+import { Analytics, identifyUser, resetUser } from './lib/analytics'
 
 function AppContent() {
   const location = useLocation()
   const { user, loading } = useAuth()
   const onboardingComplete = localStorage.getItem('artly_onboarding_complete') === 'true'
   const hasSkill = !!localStorage.getItem('artly_skill')
+
+  // Identify user in Posthog when auth resolves
+  useEffect(() => {
+    if (loading) return
+    if (user) {
+      identifyUser(user.id, {
+        email: user.email,
+        name: user.user_metadata?.full_name,
+        user_type: 'free',
+      })
+    }
+  }, [user, loading])
+
+  // Track app opened on first load
+  useEffect(() => {
+    if (loading) return
+    const userType = user ? 'free' : 'guest'
+    Analytics.appOpened(userType)
+  }, [loading])
 
   if (loading) return null
 
