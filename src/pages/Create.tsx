@@ -7,6 +7,7 @@ import {
   ArrowRight, ChevronLeft
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { Analytics } from '../lib/analytics'
 
 type InputMethod = 'upload' | 'camera' | 'describe' | null
 type InputData = { image?: string; description?: string; method: InputMethod }
@@ -21,18 +22,19 @@ interface Idea {
   estimatedTime: string
   steps: string[]
   materialsUsed?: string
+  imageKeywords?: string
   palette?: PaletteColour[]
   mixHint?: string
   paletteLoading?: boolean
   paletteError?: boolean
+  imageUrl?: string
+  imageLoading?: boolean
 }
 
 const COLOUR_KEYWORDS = [
-  'paint', 'watercolor', 'watercolour', 'watercolors', 'watercolours',
-  'acrylic', 'gouache', 'oil paint', 'tempera', 'poster color', 'poster colour',
-  'pastel', 'chalk pastel', 'oil pastel',
+  'paint', 'watercolor', 'watercolour', 'acrylic', 'pastel', 'chalk',
   'crayon', 'ink', 'dye', 'charcoal', 'colored pencil', 'coloured pencil',
-  'marker', 'markers', 'sketch pen', 'pigment',
+  'marker', 'pigment', 'oil paint', 'tempera', 'gouache', 'watercolors',
   'pressed flowers', 'pressed leaves', 'flowers', 'leaves',
 ]
 
@@ -43,6 +45,8 @@ function filterColourMaterials(materials: Material[]): string[] {
 }
 
 function savedKey(title: string) { return `artly_saved_${title}` }
+
+
 
 // ─── GuestSaveSheet ───────────────────────────────────────────────────────────
 
@@ -91,8 +95,8 @@ function GuestSaveSheet({ onClose, onSignIn }: { onClose: () => void; onSignIn: 
 
 // ─── IdeaCard ─────────────────────────────────────────────────────────────────
 
-function IdeaCard({ idea, isSaved, onToggleSave, onStartProject }: {
-  idea: Idea
+function IdeaCard({ idea, index, total, isSaved, onToggleSave, onStartProject }: {
+  idea: Idea; index: number; total: number
   isSaved: boolean; onToggleSave: () => void; onStartProject: () => void
 }) {
   const dc = {
@@ -101,25 +105,40 @@ function IdeaCard({ idea, isSaved, onToggleSave, onStartProject }: {
     advanced:     { bg: 'rgba(255,61,113,0.15)',  text: '#FF3D71', border: '#FF3D71' },
   }[idea.difficulty] || { bg: 'rgba(29,158,117,0.15)', text: '#1D9E75', border: '#1D9E75' }
 
+  const seed = encodeURIComponent(idea.title.replace(/\s+/g, '-').toLowerCase())
+  const fallbackUrl = `https://picsum.photos/seed/${seed}/600/320`
+  const imageUrl = idea.imageUrl || fallbackUrl
+
   return (
     <div style={{ background: 'var(--color-surface)', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(108,60,225,0.2)', width: '100%' }}>
-      <div style={{ height: 4, background: 'linear-gradient(90deg, #6C3CE1, #FF3D71)' }} />
-      <div style={{ padding: '20px 16px 20px' }}>
 
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
-          <h3 style={{ fontSize: 20, fontWeight: 800, color: 'var(--color-text)', margin: 0, lineHeight: 1.2, flex: 1 }}>{idea.title}</h3>
-          <button
-            onClick={e => { e.stopPropagation(); onToggleSave() }}
-            style={{ width: 38, height: 38, borderRadius: '50%', background: isSaved ? '#FF3D71' : 'rgba(255,61,113,0.12)', border: isSaved ? 'none' : '1px solid rgba(255,61,113,0.3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
-          >
-            <Heart size={17} color={isSaved ? '#fff' : '#FF3D71'} fill={isSaved ? '#fff' : 'none'} />
-          </button>
+      {/* Image */}
+      <div style={{ position: 'relative' }}>
+        <img
+          src={imageUrl}
+          alt={idea.title}
+          style={{ width: '100%', height: 220, objectFit: 'cover', display: 'block', filter: idea.imageLoading ? 'blur(8px)' : 'none', transition: 'filter 0.4s' }}
+          onError={e => { (e.target as HTMLImageElement).src = fallbackUrl }}
+        />
+        <div style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(108,60,225,0.85)', backdropFilter: 'blur(6px)', borderRadius: 20, padding: '4px 12px', display: 'flex', alignItems: 'center', gap: 5 }}>
+          <Sparkles size={12} color="#c4b0ff" />
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#c4b0ff' }}>Generated for you</span>
         </div>
+        <button
+          onClick={e => { e.stopPropagation(); onToggleSave() }}
+          style={{ position: 'absolute', top: 12, right: 12, width: 38, height: 38, borderRadius: '50%', background: isSaved ? '#FF3D71' : 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)', border: isSaved ? 'none' : '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Heart size={17} color="#fff" fill={isSaved ? '#fff' : 'none'} />
+        </button>
+      </div>
 
-        <p style={{ fontSize: 13, color: 'var(--color-text-2)', margin: '0 0 14px', lineHeight: 1.55 }}>{idea.description}</p>
+      {/* Card body */}
+      <div style={{ padding: '16px 16px 20px' }}>
+        <h3 style={{ fontSize: 20, fontWeight: 800, color: 'var(--color-text)', margin: '0 0 8px', lineHeight: 1.2 }}>{idea.title}</h3>
+        <p style={{ fontSize: 13, color: 'var(--color-text-2)', margin: '0 0 12px', lineHeight: 1.55 }}>{idea.description}</p>
 
         {idea.materialsUsed && (
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(108,60,225,0.12)', border: '1px solid rgba(108,60,225,0.2)', borderRadius: 20, padding: '5px 12px', marginBottom: 14 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(108,60,225,0.12)', border: '1px solid rgba(108,60,225,0.2)', borderRadius: 20, padding: '5px 12px', marginBottom: 12 }}>
             <Sparkles size={11} color="#9b7ff0" />
             <span style={{ fontSize: 12, color: '#9b7ff0' }}>{idea.materialsUsed}</span>
           </div>
@@ -134,9 +153,8 @@ function IdeaCard({ idea, isSaved, onToggleSave, onStartProject }: {
           </span>
         </div>
 
-        {/* Colour Palette */}
         <div style={{ marginBottom: 20 }}>
-          <p style={{ fontSize: 11, color: 'var(--color-text-3)', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>Colour Palette</p>
+          <p style={{ fontSize: 11, color: 'var(--color-text-3)', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>Suggested colour palette</p>
           {idea.paletteLoading ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid #6C3CE1', borderTopColor: 'transparent', animation: 'spin 0.7s linear infinite' }} />
@@ -146,10 +164,7 @@ function IdeaCard({ idea, isSaved, onToggleSave, onStartProject }: {
             <>
               <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
                 {idea.palette.map((c, i) => (
-                  <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 10, background: c.hex, border: '1px solid rgba(255,255,255,0.12)' }} title={c.name} />
-                    <span style={{ fontSize: 9, color: 'var(--color-text-3)', textAlign: 'center', maxWidth: 44, lineHeight: 1.2 }}>{c.name}</span>
-                  </div>
+                  <div key={i} style={{ width: 44, height: 44, borderRadius: 10, background: c.hex, border: '1px solid rgba(255,255,255,0.12)' }} title={c.name} />
                 ))}
               </div>
               {idea.mixHint && <MixHintLine hint={idea.mixHint} />}
@@ -231,6 +246,7 @@ export default function Create() {
       streamRef.current = stream
       if (videoRef.current) videoRef.current.srcObject = stream
       setSelectedMethod('camera')
+      Analytics.inputMethodSelected('camera')
     } catch {
       alert('Camera access denied. Please allow camera permissions.')
     }
@@ -259,6 +275,7 @@ export default function Create() {
     reader.onload = ev => {
       setInputData({ image: ev.target?.result as string, method: 'upload' })
       setSelectedMethod('upload')
+      Analytics.inputMethodSelected('upload')
     }
     reader.readAsDataURL(file)
   }
@@ -277,6 +294,7 @@ export default function Create() {
       const data = await res.json()
       if (!Array.isArray(data.materials) || data.materials.length === 0) throw new Error('No materials detected')
       setDetectedMaterials(data.materials)
+      Analytics.materialsDetected(data.materials.length, data.materials.map((m: any) => m.name))
       setCurrentScreen('confirmation')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Detection failed')
@@ -298,6 +316,7 @@ export default function Create() {
     setIdeas([])
     setActiveIndex(0)
     localStorage.setItem('artly_detected_materials', JSON.stringify(detectedMaterials))
+    Analytics.materialsConfirmed(detectedMaterials.length)
     try {
       const skillLevel = localStorage.getItem('artly_skill') || 'beginner'
       const res = await fetch('/api/generate-ideas', {
@@ -313,10 +332,14 @@ export default function Create() {
         mixHint: '',
         paletteLoading: true,
         paletteError: false,
+        imageUrl: '',
+        imageLoading: true,
       }))
       setIdeas(rawIdeas)
+      Analytics.ideasGenerated(rawIdeas.length, skillLevel)
       rawIdeas.forEach((idea, idx) => {
         loadPalette(idea, idx)
+        loadImage(idea, idx)
       })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Ideas generation failed')
@@ -348,13 +371,46 @@ export default function Create() {
     }
   }
 
+  const loadImage = async (idea: Idea, idx: number) => {
+    const cacheKey = `artly_img_${idea.title.replace(/\s+/g, '_').toLowerCase()}`
+    const cached = localStorage.getItem(cacheKey)
+    if (cached) {
+      setIdeas(prev => prev.map((it, i) => i === idx ? { ...it, imageUrl: cached, imageLoading: false } : it))
+      return
+    }
+    // Only fetch if Claude provided imageKeywords
+    if (!idea.imageKeywords) {
+      setIdeas(prev => prev.map((it, i) => i === idx ? { ...it, imageLoading: false } : it))
+      return
+    }
+    try {
+      const res = await fetch('/api/get-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageKeywords: idea.imageKeywords }),
+      })
+      if (!res.ok) throw new Error('Image API failed')
+      const data = await res.json()
+      const url = data.imageUrl || ''
+      if (url) localStorage.setItem(cacheKey, url)
+      setIdeas(prev => prev.map((it, i) => i === idx ? { ...it, imageUrl: url, imageLoading: false } : it))
+    } catch {
+      setIdeas(prev => prev.map((it, i) => i === idx ? { ...it, imageUrl: '', imageLoading: false } : it))
+    }
+  }
+
   const handleToggleSave = (idea: Idea) => {
     if (isGuest()) { setShowGuestSheet(true); return }
     const key = savedKey(idea.title)
     const next = !savedIdeas[key]
     setSavedIdeas(prev => ({ ...prev, [key]: next }))
-    if (next) localStorage.setItem(key, 'true')
-    else localStorage.removeItem(key)
+    if (next) {
+      localStorage.setItem(key, 'true')
+      Analytics.ideaHearted(idea.title)
+    } else {
+      localStorage.removeItem(key)
+      Analytics.ideaUnhearted(idea.title)
+    }
   }
 
   const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX }
@@ -418,7 +474,7 @@ export default function Create() {
                 </div>
                 <ChevronRight size={20} color="var(--color-text-3)" />
               </div>
-              <div onClick={() => setSelectedMethod('describe')} style={s.card}>
+              <div onClick={() => { setSelectedMethod('describe'); Analytics.inputMethodSelected('describe') }} style={s.card}>
                 <div style={{ width: 56, height: 56, borderRadius: '50%', flexShrink: 0, background: 'linear-gradient(135deg,#B07820,#EF9F27)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <PenLine size={24} color="white" strokeWidth={1.5} />
                 </div>
@@ -571,6 +627,11 @@ export default function Create() {
 
         {currentScreen === 'ideas' && (
           <>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 20 }}>
+              {[0,1,2].map(i => (
+                <div key={i} style={{ height: 4, borderRadius: 2, background: i === 0 ? '#6C3CE1' : 'rgba(255,255,255,0.15)', width: i === 0 ? 24 : 16, transition: 'all 0.3s' }} />
+              ))}
+            </div>
             <h1 style={{ fontSize: 'clamp(20px,5vw,26px)', fontWeight: 800, margin: '0 0 6px', textAlign: 'center', background: 'linear-gradient(90deg,#6C3CE1,#FF3D71)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
               Here's what you can create ✦
             </h1>
@@ -615,12 +676,12 @@ export default function Create() {
               <>
                 <div style={{ position: 'relative' }}>
                   {activeIndex > 0 && (
-                    <button onClick={() => setActiveIndex(i => i - 1)} style={{ position: 'absolute', left: -12, top: '50%', transform: 'translateY(-50%)', zIndex: 10, width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <button onClick={() => setActiveIndex(i => i - 1)} style={{ position: 'absolute', left: 10, top: 90, zIndex: 10, width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <ChevronLeft size={18} color="#fff" />
                     </button>
                   )}
                   {activeIndex < ideas.length - 1 && (
-                    <button onClick={() => setActiveIndex(i => i + 1)} style={{ position: 'absolute', right: -12, top: '50%', transform: 'translateY(-50%)', zIndex: 10, width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <button onClick={() => setActiveIndex(i => i + 1)} style={{ position: 'absolute', right: 10, top: 90, zIndex: 10, width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <ChevronRight size={18} color="#fff" />
                     </button>
                   )}
@@ -630,9 +691,12 @@ export default function Create() {
                         <div key={idx} style={{ minWidth: '100%' }}>
                           <IdeaCard
                             idea={idea}
+                            index={idx}
+                            total={ideas.length}
                             isSaved={!!savedIdeas[savedKey(idea.title)]}
                             onToggleSave={() => handleToggleSave(idea)}
                             onStartProject={() => {
+                              Analytics.projectStarted(idea.title, idea.difficulty)
                               localStorage.setItem('artly_active_idea', JSON.stringify(idea))
                               navigate('/project')
                             }}

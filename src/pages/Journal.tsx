@@ -6,6 +6,7 @@ import {
   Sparkles, Star, Check, BookOpen
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { Analytics } from '../lib/analytics'
 
 const MOODS = [
   { id: 'proud',      label: 'Proud',      Icon: SmilePlus, color: '#1D9E75', bg: 'rgba(29,158,117,0.12)',  border: '#1D9E75' },
@@ -46,6 +47,9 @@ export default function Journal() {
       const stored = localStorage.getItem('artly_active_idea')
       if (stored) setActiveIdea(JSON.parse(stored))
     } catch {}
+    Analytics.journalOpened(
+      (() => { try { return JSON.parse(localStorage.getItem('artly_active_idea') || '{}').title || '' } catch { return '' } })()
+    )
   }, [])
 
   const hasContent = mood || text.trim() || rating > 0
@@ -93,6 +97,7 @@ export default function Journal() {
   const handleSave = async () => {
     if (!hasContent) return
     setSaving(true)
+    Analytics.journalSaved(mood || 'none', rating, !!artworkImage)
     const entry = {
       mood, text: text.trim(), rating,
       idea_title: activeIdea?.title || null,
@@ -131,18 +136,14 @@ export default function Journal() {
     <div style={{ minHeight: '100dvh', background: 'var(--color-bg)', paddingBottom: 100 }}>
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '20px 16px' }}>
 
-        {/* Progress dots */}
         <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 20 }}>
           {[0,1,2].map(i => (
             <div key={i} style={{ height: 4, borderRadius: 2, background: '#6C3CE1', width: i === 2 ? 16 : 24 }} />
           ))}
         </div>
 
-        {/* Header */}
         <div style={{ marginBottom: 28 }}>
-          <h1 style={{ fontSize: 'clamp(28px,6vw,36px)', fontWeight: 800, margin: '0 0 8px', background: 'linear-gradient(90deg,#6C3CE1,#FF3D71)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-            Journal
-          </h1>
+          <h1 style={{ fontSize: 'clamp(28px,6vw,36px)', fontWeight: 800, margin: '0 0 8px', background: 'linear-gradient(90deg,#6C3CE1,#FF3D71)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Journal</h1>
           <p style={{ fontSize: 14, color: 'var(--color-text-2)', margin: 0 }}>Capture your experience and reflect on your creation.</p>
           {activeIdea && (
             <div style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(108,60,225,0.1)', border: '1px solid rgba(108,60,225,0.2)', borderRadius: 20, padding: '4px 12px' }}>
@@ -188,18 +189,14 @@ export default function Journal() {
             <div style={{ border: '1.5px dashed rgba(108,60,225,0.3)', borderRadius: 16, padding: 16, background: 'rgba(108,60,225,0.04)' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
                 <button onClick={() => fileInputRef.current?.click()} style={{ background: 'var(--color-surface)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, padding: '20px 12px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(108,60,225,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <ImagePlus size={22} color="#6C3CE1" />
-                  </div>
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(108,60,225,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ImagePlus size={22} color="#6C3CE1" /></div>
                   <div style={{ textAlign: 'center' }}>
                     <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)', margin: '0 0 3px' }}>Upload from gallery</p>
                     <p style={{ fontSize: 11, color: 'var(--color-text-3)', margin: 0 }}>Choose from your photos</p>
                   </div>
                 </button>
                 <button onClick={startCamera} style={{ background: 'var(--color-surface)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, padding: '20px 12px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(255,61,113,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Camera size={22} color="#FF3D71" />
-                  </div>
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(255,61,113,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Camera size={22} color="#FF3D71" /></div>
                   <div style={{ textAlign: 'center' }}>
                     <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)', margin: '0 0 3px' }}>Take a photo</p>
                     <p style={{ fontSize: 11, color: 'var(--color-text-3)', margin: 0 }}>Use your camera</p>
@@ -220,9 +217,7 @@ export default function Journal() {
           <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 12px' }}>Writing prompts — tap to add</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
             {PROMPTS.map(prompt => (
-              <button key={prompt} onClick={() => appendPrompt(prompt)} style={{ padding: '7px 14px', background: 'var(--color-surface)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 99, fontSize: 13, color: 'var(--color-text-2)', cursor: 'pointer' }}>
-                {prompt}
-              </button>
+              <button key={prompt} onClick={() => appendPrompt(prompt)} style={{ padding: '7px 14px', background: 'var(--color-surface)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 99, fontSize: 13, color: 'var(--color-text-2)', cursor: 'pointer' }}>{prompt}</button>
             ))}
           </div>
           <div style={{ background: 'var(--color-surface)', borderRadius: 14, padding: 14, border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -243,14 +238,11 @@ export default function Journal() {
           </div>
         </div>
 
-        {/* Save button */}
         <button onClick={handleSave} disabled={!hasContent || saving} style={{ width: '100%', padding: '16px', borderRadius: 16, background: hasContent ? 'linear-gradient(90deg,#6C3CE1 0%,#FF3D71 100%)' : 'var(--color-surface)', border: 'none', cursor: hasContent ? 'pointer' : 'not-allowed', fontSize: 16, fontWeight: 800, color: hasContent ? '#fff' : 'var(--color-text-3)', opacity: saving ? 0.7 : 1 }}>
           {saving ? 'Saving...' : 'Save entry'}
         </button>
-
       </div>
 
-      {/* Guest nudge sheet */}
       {showNudge && (
         <div onClick={() => { setShowNudge(false); setSaved(true); setTimeout(() => navigate('/saved'), 800) }} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
           <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, background: 'var(--color-surface)', borderRadius: '24px 24px 0 0', padding: '28px 24px 44px', boxShadow: '0 -8px 48px rgba(108,60,225,0.3)' }}>

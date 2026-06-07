@@ -5,6 +5,7 @@ import {
   LogOut, LogIn, BookOpen, Layers, Star, X,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { Analytics } from '../lib/analytics';
 
 const SKILL_LEVELS = ['Beginner', 'Hobbyist', 'Intermediate', 'Advanced', 'Professional'];
 
@@ -43,9 +44,15 @@ export default function Profile() {
     localStorage.setItem('artly_theme', theme);
   }, [theme]);
 
+  function handleThemeChange(newTheme: 'dark' | 'light') {
+    setTheme(newTheme);
+    Analytics.themeChanged(newTheme);
+  }
+
   function handleSkillSelect(s: string) {
     setSkill(s);
     localStorage.setItem('artly_skill', s);
+    Analytics.skillLevelChanged(s);
     setShowSkillSheet(false);
   }
 
@@ -56,6 +63,7 @@ export default function Profile() {
   }
 
   async function handleSignOut() {
+    Analytics.signedOut();
     await signOut();
     setShowSignOutConfirm(false);
     navigate('/');
@@ -132,8 +140,8 @@ export default function Profile() {
             <span className="profile-row-label">Theme</span>
           </div>
           <div className="theme-toggle-pill">
-            <button className={`theme-pill-btn${theme === 'dark' ? ' active' : ''}`} onClick={() => setTheme('dark')}>Artisan Dark</button>
-            <button className={`theme-pill-btn${theme === 'light' ? ' active' : ''}`} onClick={() => setTheme('light')}>Studio Light</button>
+            <button className={`theme-pill-btn${theme === 'dark' ? ' active' : ''}`} onClick={() => handleThemeChange('dark')}>Artisan Dark</button>
+            <button className={`theme-pill-btn${theme === 'light' ? ' active' : ''}`} onClick={() => handleThemeChange('light')}>Studio Light</button>
           </div>
         </div>
       </section>
