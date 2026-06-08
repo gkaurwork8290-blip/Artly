@@ -27,8 +27,6 @@ interface Idea {
   mixHint?: string
   paletteLoading?: boolean
   paletteError?: boolean
-  imageUrl?: string
-  imageLoading?: boolean
 }
 
 const COLOUR_KEYWORDS = [
@@ -105,36 +103,20 @@ function IdeaCard({ idea, index, total, isSaved, onToggleSave, onStartProject }:
     advanced:     { bg: 'rgba(255,61,113,0.15)',  text: '#FF3D71', border: '#FF3D71' },
   }[idea.difficulty] || { bg: 'rgba(29,158,117,0.15)', text: '#1D9E75', border: '#1D9E75' }
 
-  const seed = encodeURIComponent(idea.title.replace(/\s+/g, '-').toLowerCase())
-  const fallbackUrl = `https://picsum.photos/seed/${seed}/600/320`
-  const imageUrl = idea.imageUrl || fallbackUrl
-
   return (
     <div style={{ background: 'var(--color-surface)', borderRadius: 20, overflow: 'hidden', border: '1px solid rgba(108,60,225,0.2)', width: '100%' }}>
-
-      {/* Image */}
-      <div style={{ position: 'relative' }}>
-        <img
-          src={imageUrl}
-          alt={idea.title}
-          style={{ width: '100%', height: 220, objectFit: 'cover', display: 'block', filter: idea.imageLoading ? 'blur(8px)' : 'none', transition: 'filter 0.4s' }}
-          onError={e => { (e.target as HTMLImageElement).src = fallbackUrl }}
-        />
-        <div style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(108,60,225,0.85)', backdropFilter: 'blur(6px)', borderRadius: 20, padding: '4px 12px', display: 'flex', alignItems: 'center', gap: 5 }}>
-          <Sparkles size={12} color="#c4b0ff" />
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#c4b0ff' }}>Generated for you</span>
-        </div>
-        <button
-          onClick={e => { e.stopPropagation(); onToggleSave() }}
-          style={{ position: 'absolute', top: 12, right: 12, width: 38, height: 38, borderRadius: '50%', background: isSaved ? '#FF3D71' : 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)', border: isSaved ? 'none' : '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        >
-          <Heart size={17} color="#fff" fill={isSaved ? '#fff' : 'none'} />
-        </button>
-      </div>
-
+      <div style={{ height: 4, background: 'linear-gradient(90deg, #6C3CE1, #FF3D71)' }} />
       {/* Card body */}
       <div style={{ padding: '16px 16px 20px' }}>
-        <h3 style={{ fontSize: 20, fontWeight: 800, color: 'var(--color-text)', margin: '0 0 8px', lineHeight: 1.2 }}>{idea.title}</h3>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
+          <h3 style={{ fontSize: 20, fontWeight: 800, color: 'var(--color-text)', margin: 0, lineHeight: 1.2, flex: 1 }}>{idea.title}</h3>
+          <button
+            onClick={e => { e.stopPropagation(); onToggleSave() }}
+            style={{ width: 38, height: 38, borderRadius: '50%', background: isSaved ? '#FF3D71' : 'rgba(255,61,113,0.12)', border: isSaved ? 'none' : '1px solid rgba(255,61,113,0.3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+          >
+            <Heart size={17} color={isSaved ? '#fff' : '#FF3D71'} fill={isSaved ? '#fff' : 'none'} />
+          </button>
+        </div>
         <p style={{ fontSize: 13, color: 'var(--color-text-2)', margin: '0 0 12px', lineHeight: 1.55 }}>{idea.description}</p>
 
         {idea.materialsUsed && (
@@ -332,14 +314,11 @@ export default function Create() {
         mixHint: '',
         paletteLoading: true,
         paletteError: false,
-        imageUrl: '',
-        imageLoading: true,
       }))
       setIdeas(rawIdeas)
       Analytics.ideasGenerated(rawIdeas.length, skillLevel)
       rawIdeas.forEach((idea, idx) => {
         loadPalette(idea, idx)
-        loadImage(idea, idx)
       })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Ideas generation failed')
@@ -368,34 +347,6 @@ export default function Create() {
       ))
     } catch {
       setIdeas(prev => prev.map((it, i) => i === idx ? { ...it, paletteLoading: false, paletteError: true } : it))
-    }
-  }
-
-  const loadImage = async (idea: Idea, idx: number) => {
-    const cacheKey = `artly_img_${idea.title.replace(/\s+/g, '_').toLowerCase()}`
-    const cached = localStorage.getItem(cacheKey)
-    if (cached) {
-      setIdeas(prev => prev.map((it, i) => i === idx ? { ...it, imageUrl: cached, imageLoading: false } : it))
-      return
-    }
-    // Only fetch if Claude provided imageKeywords
-    if (!idea.imageKeywords) {
-      setIdeas(prev => prev.map((it, i) => i === idx ? { ...it, imageLoading: false } : it))
-      return
-    }
-    try {
-      const res = await fetch('/api/get-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageKeywords: idea.imageKeywords }),
-      })
-      if (!res.ok) throw new Error('Image API failed')
-      const data = await res.json()
-      const url = data.imageUrl || ''
-      if (url) localStorage.setItem(cacheKey, url)
-      setIdeas(prev => prev.map((it, i) => i === idx ? { ...it, imageUrl: url, imageLoading: false } : it))
-    } catch {
-      setIdeas(prev => prev.map((it, i) => i === idx ? { ...it, imageUrl: '', imageLoading: false } : it))
     }
   }
 
